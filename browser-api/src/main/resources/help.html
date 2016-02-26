@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Genome Browser Help</title>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div class="content">
+    <div class="page-header">
+        <h1>Genome Browser</h1>
+
+        <p>Genome Browser is a desktop and server tool to view different types of biological data.</p>
+    </div>
+    <table class="table">
+        <tr class="no-borders">
+            <td class="no-borders"><h3>Navigation</h3>
+                <ul>
+                    <li><b>Input form</b> is used to move directly to any genome location. Use <i>chromosome:start-end</i> or
+                        <i>gene name</i> to navigate
+                    </li>
+                    <li><b>Zoom to region</b> use SHIFT + mouse selection to zoom to any visible region</li>
+                    <li><b>Zoom</b> use SHIFT + mouse scroll, or +/- to zoom in and out</li>
+                    <li><b>Movement</b> use left, right arrow keys for navigation. Also you can use drag and drop on the
+                        genome position indicator
+                    </li>
+                    <li><b>History</b> use standard actions for your browser to navigate back and forward</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td><h3>Multiple locations</h3>
+                Browser supports displaying multiple locations side by side as a virtual chromosome.<br>
+                Supported locations (all of these are available in completion popup):
+                <ul>
+                    <li><b>Genes</b></li>
+                    All genes available in <a href="http://www.ensembl.org/index.html">Ensembl</a>
+                    <li><b>Tss, tes</b></li>
+                    These can be parametrized with width, i.e. <i>TSS500</i> or boundaries <i>TSS-200,300</i>.<br>
+                    The same is applicable for <i>TES</i>.
+                    <li><b>Introns, exons, cds, utr5, utr3</b></li>
+                    <li><b>Repeats, nonRepeats</b></li>
+                    <li><b>Development genes</b></li>
+                    <li><b>Housekeeping genes</b></li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td><h3>Logs</h3>
+                Logs are available at the top of genome browser page
+                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            </td>
+        </tr>
+        <tr>
+            <td><h2>JetBrains BioLabs</h2>
+                Information about JetBrains BioLabs is available <a
+                        href="https://research.jetbrains.org/groups/biolabs">here</a>.<br>
+                In case of any questions please contact <a
+                        href="mailto:bioinformatics@jetbrains.com">bioinformatics@jetbrains.com</a>.
+            </td>
+        </tr>
+    </table>
+
+
+</div>
+
+<footer id="genome-browser-footer">
+    &copy; 2015-2016 <a href="https://research.jetbrains.org/groups/biolabs" title="JetBrains BioLabs" target="_blank">BioLabs</a>
+</footer>
+</body>
+</html>

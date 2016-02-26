@@ -1,0 +1,15 @@
+apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+version = 'dev'
+mainClassName = "org.jetbrains.bio.gemlbee.GeMLBeeCLA"
+
+shadowJar {
+    baseName = 'gemlbee'
+    classifier = ''
+}
+
+jar {
+    baseName = 'singlejar'
+    manifest.attributes provider: 'gradle'
+}

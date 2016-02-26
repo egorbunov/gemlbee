@@ -1,0 +1,113 @@
+#genome-browser-navigation {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+#genome-browser-home {
+    color: black;
+    padding-right: 20px;
+}
+
+#genome-browser-log {
+    color: black;
+}
+
+#genome-browser-panel {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+#genome-browser {
+    display: none;
+}
+
+#text-edit-line {
+    width: 970px;
+    font-size: large;
+    z-index: 40;
+}
+
+#genome-track-selection {
+    border: 3px solid #000000;
+    position: absolute;
+    z-index: 10;
+}
+
+#genome-browser-footer {
+    width: 200px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 20px;
+    color: #777;
+}
+
+#genome-browser-footer a {
+    color: #777;
+}
+
+#genome-browser-footer li {
+    display: inline-block;
+    position: relative;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
+#genome-browser-tracks-loading {
+    position: absolute;
+    z-index: 30;
+    opacity: 0;
+    background-color: black;
+    transition-property: opacity;
+    transition-duration: 1s;
+    transition-timing-function: linear;
+}
+
+#genome-browser-tracks-loading.progress-fade {
+    opacity: 0.5;
+}
+
+#genome-browser-position {
+    position: absolute;
+    z-index: 20;
+    opacity: .5;
+    background-color: red;
+    border: 2px solid #ff0000;
+    cursor: pointer;
+}
+
+.content {
+    width: 1024px;
+    margin: 20px auto;
+}
+
+.static-content {
+    margin: 10px;
+    white-space: pre;
+}
+
+.error {
+    overflow: auto;
+}
+
+.browsers-list-li {
+    vertical-align: text-top;
+    display: inline-block;
+}
+
+.no-borders {
+    border-top: none !important;
+}
+
+.unselectable {
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+ul.footer {
+  display: inline;
+}

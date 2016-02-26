@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+    <title>Genome Multiple Locations Browser GeMLBee</title>
+    <meta http-equiv="content-type" content="application/xhtml; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+    <!-- jquery-ui after bootstrap as a workaround for missing close icon.
+    http://stackoverflow.com/questions/17367736/jquery-ui-dialog-missing-close-icon-->
+    <script type="text/javascript" src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+
+    <!-- Plugin for selection over browser image -->
+    <script type="text/javascript" src="lib/jquery.imgareaselect.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="lib/imgareaselect-default.css"/>
+
+    <script src="scripts/browser/api.js"></script>
+    <script src="scripts/browser/browser.js"></script>
+    <script src="scripts/browser/control.js"></script>
+    <script src="scripts/browser/request.js"></script>
+    <script src="scripts/browser/results.js"></script>
+    <!--React js-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.0/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.0/JSXTransformer.js"></script>
+    <script src="scripts/reactapi.js"></script>
+    <script type="text/jsx;harmony=true" src="scripts/weblog.js"></script>
+
+    <!--Spinner-->
+    <script src="http://fgnass.github.io/spin.js/spin.min.js"></script>
+
+    <!-- Web logs dialog -->
+    <script>
+        $(function() {
+            $("#log-dialog").dialog({
+                autoOpen: false,
+                width: $("#genome-browser-input").width(),
+                modal: true
+            });
+            $("#genome-browser-log").click(function() {
+                $("#log-dialog").dialog("open");
+            });
+        });
+  </script>
+</head>
+
+<body onhashchange="checkHash();" onload="initialize()" onresize="checkHash();" onunload="cancelAll()">
+
+<div id="genome-browser-input" class="content">
+    <form onsubmit="return false" accept-charset="UTF-8" id="input-form" action="#" class="form-inline">
+        <input id="text-edit-line" type="text" class="form-control"
+               data-toggle="tooltip" data-placement="bottom" title="Gene, chromosome or locus"/>
+        <button id="go-button" class="btn btn-primary" onclick="executeButtonClick()">Go</button>
+    </form>
+</div>
+<div class="unselectable" id="genome-browser-panel">
+    <div id="genome-browser"></div>
+</div>
+
+<div id="genome-browser-navigation">
+    <div class="btn-group" role="group">
+        <a href="../" id="genome-browser-home" class="btn btn-default btn-sm">
+            &nbsp;<span class="glyphicon glyphicon-home" aria-hidden="true"></span></a>
+
+        <a id="genome-browser-log" class="btn btn-default btn-sm">
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>&nbsp;Logs&nbsp;&nbsp;</a>
+    </div>
+</div>
+
+<div id="log-dialog" title="Genome browser logs">
+    <p>Full logs <a href="../log" target="_blank">here</a></p>
+    <div id="weblog"></div>
+</div>
+
+<footer id="genome-browser-footer">
+    <ul class="footer">
+        <li>&copy; 2015-2016 <a href="https://research.jetbrains.org/groups/biolabs" title="JetBrains BioLabs"
+                           target="_blank">BioLabs</a></li>
+        <li><a href="help.html" title="Help" target="_blank">Help</a></li>
+    </ul>
+</footer>
+</body>
+</html>
