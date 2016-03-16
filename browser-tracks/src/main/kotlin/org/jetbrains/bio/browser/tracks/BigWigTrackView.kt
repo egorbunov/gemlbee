@@ -14,6 +14,7 @@ import org.jetbrains.bio.ext.asFileSize
 import org.jetbrains.bio.ext.size
 import org.jetbrains.bio.genome.ChromosomeRange
 import org.jetbrains.bio.genome.Strand
+import org.jetbrains.bio.util.Colors
 import java.awt.*
 import java.nio.file.Path
 import java.util.*
@@ -27,8 +28,51 @@ import javax.swing.*
  * @author Roman Chernyatchik
  * @since 27/08/15
  */
-abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE, title: String) :
+abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
+                               title: String) :
         TrackView(title), TrackViewWithControls {
+
+    companion object {
+        @JvmStatic fun create(title: String, yAxisTitle: String,
+                              vararg descAndPaths: Pair<String, Path>): BigWigTrackView {
+            return object : BigWigTrackView(title = title) {
+                override val layersNumber = descAndPaths.size
+                override val strandedData = false
+                override val yAxisTitle = yAxisTitle
+
+                private val palette = when (layersNumber) {
+                    1 -> listOf(Color.BLACK)
+                    else -> Colors.palette(layersNumber, 200)
+                }
+
+                override fun renderer(layer: Int,
+                                      model: SingleLocationBrowserModel,
+                                      conf: Storage,
+                                      uiOptions: Storage)
+                        = ValueRenderer(palette[layer])
+
+                override fun getDataPath(layer: Int, strand: Strand,
+                                         model: SingleLocationBrowserModel,
+                                         conf: Storage)
+                        = descAndPaths[layer].second
+
+                override fun addTrackControls(): List<Pair<String, JComponent>> {
+                    return if (layersNumber > 2) {
+                        listOf(lineTypeSelector())
+                    } else {
+                        listOf()
+                    }
+                }
+
+                override fun drawLegend(g: Graphics, width: Int, height: Int, drawInBG: Boolean) {
+                    TrackUIUtil.drawBoxedLegend(g, width, height, drawInBG,
+                            *descAndPaths
+                                    .mapIndexed { layer, pair -> palette[layer].to(pair.first) }
+                                    .toTypedArray())
+                }
+            }
+        }
+    }
 
     ////////////////////////////////////////////////////////////
     // ========================================================
@@ -193,7 +237,7 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE, titl
         for (strand in strands) {
             for (layer in 0 until layersNumber) {
                 renderer(layer, model, conf, uiOpts)?.let { renderer ->
-                    val pointData = conf[TRACK_DATA][layer, strand]
+                    val pointData = conf[TRACK_DATA].get(layer, strand)
                     check(pointData.isNotEmpty())
 
                     // summarized blocks min/max

@@ -1,5 +1,6 @@
 package org.jetbrains.bio.browser.util
 
+import org.jetbrains.bio.browser.createAAGraphics
 import org.jetbrains.bio.browser.model.BrowserModel
 import org.jetbrains.bio.browser.model.LocationReference
 import org.jetbrains.bio.browser.model.MultipleLocationsBrowserModel
@@ -8,7 +9,10 @@ import org.jetbrains.bio.browser.tasks.CancellableState
 import org.jetbrains.bio.browser.tracks.TrackView
 import org.jetbrains.bio.ext.stream
 import org.jetbrains.bio.genome.query.GenomeQuery
-import java.awt.*
+import java.awt.AlphaComposite
+import java.awt.Color
+import java.awt.Graphics
+import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.util.*
 import java.util.concurrent.CancellationException
@@ -19,11 +23,11 @@ import java.util.stream.Collectors
  *
  * @author Oleg Shpynov
  */
-object TrackViewRenderer {
+public object TrackViewRenderer {
     @JvmField val TITLE_HEIGHT = TrackUIUtil.DEFAULT_FONT_HEIGHT + 10
 
     @Throws(CancellationException::class)
-    @JvmStatic fun paintHeadless(model: BrowserModel,
+    public @JvmStatic fun paintHeadless(model: BrowserModel,
                                         g: Graphics,
                                         trackView: TrackView,
                                         width: Int, height: Int,
@@ -51,7 +55,7 @@ object TrackViewRenderer {
     }
 
     @Throws(CancellationException::class)
-    @JvmStatic fun paintToImage(bufferedImage: BufferedImage,
+    public @JvmStatic fun paintToImage(bufferedImage: BufferedImage,
                                        model: BrowserModel,
                                        width: Int, height: Int,
                                        trackView: TrackView,
@@ -65,8 +69,7 @@ object TrackViewRenderer {
         config[TrackView.WIDTH] = width
         config[TrackView.HEIGHT] = height
 
-        val g2d = bufferedImage.createGraphics()
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+        val g2d = bufferedImage.createAAGraphics()
         try {
             if (modelCopy is MultipleLocationsBrowserModel) {
                 val modelsAndConfigs

@@ -4,7 +4,6 @@ import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Storage
 import java.awt.Graphics
 
-@Suppress("unused")
 /**
  * @author Oleg Shpynov
  */

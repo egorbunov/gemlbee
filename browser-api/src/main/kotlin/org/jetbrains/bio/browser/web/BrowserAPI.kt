@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableMap
 import com.google.common.collect.Maps
 import com.google.gson.GsonBuilder
 import org.apache.log4j.Logger
-import org.jetbrains.bio.browser.AbstractGenomeBrowser
+import org.jetbrains.bio.browser.GenomeBrowser
 import org.jetbrains.bio.browser.desktop.Header
 import org.jetbrains.bio.browser.headless.HeadlessGenomeBrowser
 import org.jetbrains.bio.util.Logs
@@ -41,7 +41,7 @@ object BrowserAPI {
             val browser: HeadlessGenomeBrowser
             try {
                 browser = Browsers.getBrowser(session, name)
-            } catch (e: Browsers.InvalidBrowserException) {
+            } catch (e: InvalidBrowserException) {
                 initialize(session, name, request["id"], response, request["query"])
                 return
             }
@@ -122,7 +122,7 @@ object BrowserAPI {
               taskId: Int) {
         LOG.debug("CHECK $name@$sessionId $taskId")
         val renderTasks = Browsers.getRenderTasks(sessionId, name)
-        val task = renderTasks[taskId]
+        val task = renderTasks.get(taskId)
         // Timeout, NO task for given request
         if (task == null) {
             LOG.debug("Timeout: no request found for $taskId")
@@ -160,7 +160,7 @@ object BrowserAPI {
              taskId: Int) {
         LOG.debug("SHOW $name@$sessionId $taskId")
         val renderTasks = Browsers.getRenderTasks(sessionId, name)
-        val task = renderTasks[taskId] ?: return
+        val task = renderTasks.get(taskId) ?: return
         try {
             // Cancelled
             response.contentType = "image/png;base64"
@@ -214,7 +214,6 @@ enum class Response {
     Show
 }
 
-@Suppress("unused")
 class State(val start: Int,
             val end: Int,
             val length: Int,
@@ -225,7 +224,7 @@ class State(val start: Int,
         fun of(genomeBrowser: HeadlessGenomeBrowser): State {
             val browserModel = genomeBrowser.browserModel
             val range = browserModel.range
-            val header = AbstractGenomeBrowser.createHeaderView(browserModel)
+            val header = GenomeBrowser.createHeaderView(browserModel)
 
             return State(
                     range.startOffset,

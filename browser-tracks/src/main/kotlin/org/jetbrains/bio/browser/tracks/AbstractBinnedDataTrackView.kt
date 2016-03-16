@@ -115,7 +115,7 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
             val section = VariableStepSection(chrName, span = binSize);
             binnedData.forEachIndexed { i, value ->
                 if (!ignoredValue(value)) {
-                    section[i * binSize] = value
+                    section.set(i * binSize, value)
                 }
             }
             listOf(section)
@@ -130,7 +130,7 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    override fun addTrackControls(): List<Pair<String, JComponent>> {
+    protected override fun addTrackControls(): List<Pair<String, JComponent>> {
         val superControls = super.addTrackControls()
         return when {
             binSizes.size < 2 -> superControls

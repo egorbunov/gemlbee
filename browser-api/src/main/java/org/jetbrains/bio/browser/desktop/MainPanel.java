@@ -3,7 +3,7 @@ package org.jetbrains.bio.browser.desktop;
 import org.jdesktop.swingx.util.OS;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.bio.browser.AbstractGenomeBrowser;
+import org.jetbrains.bio.browser.GenomeBrowser;
 import org.jetbrains.bio.browser.model.BrowserModel;
 import org.jetbrains.bio.browser.tracks.TrackView;
 
@@ -47,7 +47,7 @@ public class MainPanel extends JPanel implements ActionListener {
   public void setModel(final BrowserModel browserModel) {
     myControlPane.setBrowserModel(browserModel);
     myScrollBarModel.setBrowserModel(browserModel);
-    myTrackListComponent.getContentPane().setColumnHeaderView(AbstractGenomeBrowser.createHeaderView(browserModel));
+    myTrackListComponent.getContentPane().setColumnHeaderView(GenomeBrowser.Companion.createHeaderView(browserModel));
   }
 
   public TrackListComponent getTrackListComponent() {

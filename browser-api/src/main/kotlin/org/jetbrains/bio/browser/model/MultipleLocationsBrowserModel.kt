@@ -19,13 +19,12 @@ open class MultipleLocationsBrowserModel protected constructor(
         val originalModel: BrowserModel,
         val locationReferences: List<LocationReference>,
         protected val cumulativeLength: IntArray =
-            MultipleLocationsBrowserModel.cumulativeLength(locationReferences, id, originalModel.genomeQuery),
-        private val initRange: Range =
-            MultipleLocationsBrowserModel.defaultRange(cumulativeLength))
-: BrowserModel(originalModel.genomeQuery, initRange) {
+            cumulativeLength(locationReferences, id, originalModel.genomeQuery),
+        private val initRange: Range = defaultRange(cumulativeLength))
+:
+        BrowserModel(originalModel.genomeQuery, initRange) {
 
-    override val length: Int
-        get() = cumulativeLength.last()
+    override val length: Int get() = cumulativeLength.last()
 
     companion object {
         const val MAX_LOCATIONS: Long = 10000
@@ -112,7 +111,8 @@ open class MultipleLocationsBrowserModel protected constructor(
     private fun index(offset: Int) = Arrays.binarySearch(cumulativeLength, offset)
             .let { if (it < 0) it.inv() else it }
 
-    override fun copy(): MultipleLocationsBrowserModel
-            = MultipleLocationsBrowserModel(id, originalModel, locationReferences, cumulativeLength, range)
+    override fun copy() = MultipleLocationsBrowserModel(id, originalModel,
+                                                        locationReferences,
+                                                        cumulativeLength, range)
 
 }

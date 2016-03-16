@@ -69,3 +69,5 @@ class TdfTrackView(val path: Path, val trackNumber: Int = 0) : TrackView(path.na
         TrackUIUtil.drawVerticalAxis(g, "", scales[0], drawInBG, width, height)
     }
 }
+
+

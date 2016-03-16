@@ -69,7 +69,7 @@ class CombinedTrackView(private val backGroundView: TrackView,
         val bgScales = backGroundView.computeScale(model, bgConf)
         bgConf[TrackView.TRACK_SCALE] = bgScales
 
-        val fgConf = conf[FG_CONFIG]
+        val fgConf = conf.get(FG_CONFIG)
         val fgScales = frontView.computeScale(model, fgConf)
         fgConf[TrackView.TRACK_SCALE] = fgScales
 
@@ -167,8 +167,10 @@ class CombinedTrackView(private val backGroundView: TrackView,
         fgContPane.add(frontPane.first)
         contentPane.add(fgContPane)
 
-        return contentPane to Consumer<kotlin.Boolean> {
-            enabled -> frontPane.second.andThen(bgPane.second).accept(enabled)
+        return contentPane to object : Consumer<Boolean> {
+            override fun accept(enabled: Boolean) {
+                frontPane.second.andThen(bgPane.second).accept(enabled)
+            }
         }
     }
 
@@ -177,6 +179,6 @@ class CombinedTrackView(private val backGroundView: TrackView,
         //noinspection ConstantConditions
         val end = if (background) backGroundView.scalesNumber else scales.size
 
-        return (start until end).map { scales[it] }
+        return (start until end).map { scales.get(it) }
     }
 }

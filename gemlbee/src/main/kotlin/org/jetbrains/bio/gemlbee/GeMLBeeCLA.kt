@@ -7,6 +7,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.eclipse.jetty.server.handler.HandlerList
 import org.eclipse.jetty.webapp.WebAppContext
+import org.jetbrains.bio.browser.LociCompletion
 import org.jetbrains.bio.browser.desktop.BrowserSplash
 import org.jetbrains.bio.browser.desktop.DesktopGenomeBrowser
 import org.jetbrains.bio.browser.headless.HeadlessGenomeBrowser
@@ -15,7 +16,6 @@ import org.jetbrains.bio.browser.model.LocationReference
 import org.jetbrains.bio.browser.model.MultipleLocationsBrowserModel
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.tracks.*
-import org.jetbrains.bio.browser.util.LociCompletion
 import org.jetbrains.bio.browser.web.Browsers
 import org.jetbrains.bio.browser.web.Handlers
 import org.jetbrains.bio.browser.web.ServerUtil
@@ -331,7 +331,7 @@ chr4    55538009    55547347    KLF4    -
 
 
 data class NamedLocRef(override val name:String, override val location: Location) : LocationReference {
-    override val metaData: Any?
+    val metaData: Any?
         get() = null;
 
     override fun update(newLoc: Location) = NamedLocRef(name, newLoc)

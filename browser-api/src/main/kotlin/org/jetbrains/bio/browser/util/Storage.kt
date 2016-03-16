@@ -1,6 +1,5 @@
 package org.jetbrains.bio.browser.util
 
-import com.google.common.base.Preconditions
 import com.google.common.collect.Lists
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -10,7 +9,8 @@ data class Key<T>(val id: String) {
     fun valueOf(v: Any): T = v as T
 }
 
-@FunctionalInterface interface Listener {
+@FunctionalInterface
+interface Listener {
     fun valueChanged(key: Key<*>, value: Any?)
 }
 
@@ -24,7 +24,7 @@ class Storage {
     }
 
     fun <T> init(key: Key<T>, value: T) {
-        Preconditions.checkArgument(!contains(key), "Already contains key ${key.id}, use #set")
+        require(!contains(key)) { "Already contains key ${key.id}, use #set" }
         map.put(key.id, value!!)
     }
 

@@ -40,7 +40,7 @@ object TrackUIUtil {
     /**
      * Draw axis. If realScale is Scale.undefined() than do not show tick marks
      */
-    @JvmOverloads @JvmStatic fun drawVerticalAxis(
+    public @JvmOverloads @JvmStatic fun drawVerticalAxis(
             g: Graphics,
             yAxisTitle: String,
             visibleScale: TrackView.Scale,
@@ -108,7 +108,7 @@ object TrackUIUtil {
     /**
      * Draws string on the screen on the white background, useful when printing over track
      */
-    @JvmStatic fun drawString(g: Graphics, string: String, x: Int, y: Int, color: Color) {
+    public @JvmStatic fun drawString(g: Graphics, string: String, x: Int, y: Int, color: Color) {
         g.color = Color.WHITE
 
         val bounds = g.fontMetrics.getStringBounds(string, g)
@@ -128,7 +128,7 @@ object TrackUIUtil {
      * @param range
      * @return screen x coordinate
      */
-    @JvmStatic fun genomeToScreen(offset: Int, trackWidth: Int, range: Range): Int
+    public @JvmStatic fun genomeToScreen(offset: Int, trackWidth: Int, range: Range): Int
             = ((offset - range.startOffset).toLong() * trackWidth / range.length()).toInt()
 
     /**
@@ -138,11 +138,11 @@ object TrackUIUtil {
      * @param range
      * @return chromosome offset
      */
-    @JvmStatic fun screenToGenome(screenX: Int, trackWidth: Long, range: Range): Int
+    public @JvmStatic fun screenToGenome(screenX: Int, trackWidth: Long, range: Range): Int
             = ((screenX.toLong()) * range.length() / trackWidth + range.startOffset).toInt()
 
 
-    @JvmStatic fun locationsWidths(namedLocations: List<LocationAware>,
+    public @JvmStatic fun locationsWidths(namedLocations: List<LocationAware>,
                                           screenWidth: Int): List<Int> {
         val cumulativeLength = namedLocations.stream().mapToInt { it.location.length() }.sum()
 
@@ -161,7 +161,7 @@ object TrackUIUtil {
         return locWidth
     }
 
-    @JvmStatic fun drawGrid(g: Graphics, range: Range, width: Int, height: Int) {
+    public @JvmStatic fun drawGrid(g: Graphics, range: Range, width: Int, height: Int) {
         val step = stepSize(range.length())
         g.color = Color.LIGHT_GRAY
         IntStream.rangeClosed(range.startOffset / step, range.endOffset / step).forEach() { i ->
@@ -170,7 +170,7 @@ object TrackUIUtil {
         }
     }
 
-    @JvmStatic fun drawGrid(g: Graphics,
+    public @JvmStatic fun drawGrid(g: Graphics,
                                    width: Int,
                                    top: Int, bottom: Int,
                                    multiModel: MultipleLocationsBrowserModel) {
@@ -193,7 +193,7 @@ object TrackUIUtil {
     }
 
 
-    fun stepSize(length: Int): Int {
+    public fun stepSize(length: Int): Int {
         // Step: 1, 5, 10, 50, 100, 500, ... bp
         var step = 1
         var times5 = true
@@ -205,7 +205,7 @@ object TrackUIUtil {
     }
 
 
-    @JvmStatic fun drawBoxedLegend(g: Graphics,
+    public @JvmStatic fun drawBoxedLegend(g: Graphics,
                                           trackWidth: Int, trackHeight: Int,
                                           drawInBG: Boolean,
                                           vararg legendItems: Pair<Color, String>) {
@@ -265,12 +265,12 @@ object TrackUIUtil {
         }
     }
 
-    @JvmStatic fun drawErrorMessage(g: Graphics, message: String) {
+    public @JvmStatic fun drawErrorMessage(g: Graphics, message: String) {
         drawString(g, message, 10, g.fontMetrics.height, Color.RED);
     }
 
 
-    @JvmStatic fun drawScaleRuler(g: Graphics, range: Range, width: Int, height: Int) {
+    public @JvmStatic fun drawScaleRuler(g: Graphics, range: Range, width: Int, height: Int) {
         val regionLength = range.length()
         val stepSize = stepSize(regionLength)
 
@@ -298,7 +298,7 @@ object TrackUIUtil {
         }
     }
 
-    @JvmStatic fun drawOffsets(g: Graphics, range: Range, width: Int) {
+    public @JvmStatic fun drawOffsets(g: Graphics, range: Range, width: Int) {
         val step = stepSize(range.length())
         val segmentStart = range.startOffset / step
         val segmentEnd = range.endOffset / step

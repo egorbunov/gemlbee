@@ -18,7 +18,7 @@ import java.nio.file.Path
  * @author Sergei Lebedev
  * @since 24/07/15
  */
-class BigBedTrackView(path: Path, private val numBins: Int) : TrackView(path.name) {
+public class BigBedTrackView(path: Path, private val numBins: Int) : TrackView(path.name) {
     private val bbf = BigBedFile.read(path)
 
     override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
@@ -46,7 +46,7 @@ class BigBedTrackView(path: Path, private val numBins: Int) : TrackView(path.nam
         TrackUIUtil.drawVerticalAxis(g, "The Marsians", scales.first(), drawInBG, width, height)
     }
 
-    override fun computeScale(model: SingleLocationBrowserModel,
+    public override fun computeScale(model: SingleLocationBrowserModel,
                                      conf: Storage): List<TrackView.Scale> {
         val summaries = bbf.summarize(model.chromosomeRange, numBins)
         val max = Math.ceil(summaries.map { it.sum }.max()!!)

@@ -18,7 +18,7 @@ import java.awt.Graphics
  * @author Sergei Lebedev
  * @since 09/09/15
  */
-class KallistoTrackView(private val inputQuery: InputQuery<List<TranscriptAbundance>>) :
+public class KallistoTrackView(private val inputQuery: InputQuery<List<TranscriptAbundance>>) :
         TrackView(inputQuery.id) {
 
     private val ABUNDANCES = CacheBuilder.newBuilder().weakKeys().build<Chromosome, List<TranscriptAbundance>>()

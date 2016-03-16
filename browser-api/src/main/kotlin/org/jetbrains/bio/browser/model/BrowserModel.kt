@@ -1,28 +1,29 @@
 package org.jetbrains.bio.browser.model
 
-import com.google.common.collect.Lists
 import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.genome.query.GenomeQuery
-import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KProperty
+import java.util.*
+import kotlin.properties.Delegates
 
 /**
  * @author Roman.Chernyatchik
  */
 
 abstract class BrowserModel(val genomeQuery: GenomeQuery, range: Range) {
-    open var range: Range by CallbackProperty(range, { desc, oldCR, newCR ->
-        if (!oldCR.equals(newCR)) {
+    open var range: Range by Delegates.observable(range) { _property, oldCR, newCR ->
+        if (oldCR != newCR) {
             modelChanged()
         }
-    })
+    }
 
-    protected val modelListeners: MutableList<ModelListener> = Lists.newArrayList<ModelListener>()
+    protected val modelListeners = ArrayList<ModelListener>()
 
     abstract val length: Int
 
     abstract fun presentableName(): String
     abstract fun copy(): BrowserModel
+
+    // XXX why synchronized?
 
     fun modelChanged() {
         synchronized (modelListeners) {
@@ -45,21 +46,6 @@ abstract class BrowserModel(val genomeQuery: GenomeQuery, range: Range) {
     override fun toString() = presentableName()
 }
 
-class CallbackProperty<T>(default: T,
-                          private val callback: (name: KProperty<*>, oldValue: T, newValue: T) -> Unit)
-: ReadWriteProperty<Any?, T> {
-    private var value = default
-
-    operator override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
-
-    operator override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
-        val old = this.value
-        this.value = value
-        callback(property, old, value)
-    }
-}
-
 interface ModelListener {
     fun modelChanged()
 }
-

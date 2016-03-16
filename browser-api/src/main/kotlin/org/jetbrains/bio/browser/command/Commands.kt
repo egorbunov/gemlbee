@@ -1,6 +1,6 @@
 package org.jetbrains.bio.browser.command
 
-import org.jetbrains.bio.browser.AbstractGenomeBrowser
+import org.jetbrains.bio.browser.GenomeBrowser
 import org.jetbrains.bio.browser.model.BrowserModel
 import org.jetbrains.bio.browser.model.LocationReference
 import org.jetbrains.bio.browser.model.SimpleLocRef
@@ -13,14 +13,9 @@ import org.jetbrains.bio.genome.Strand
  * @author Roman.Chernyatchik
  */
 
-interface Command {
-    fun redo()
-    fun undo()
-}
-
 data class ChangeLocationCmd(private val oldLoc: LocationReference,
-                                    private val newLoc: LocationReference,
-                                    private val model: SingleLocationBrowserModel) : Command {
+                             private val newLoc: LocationReference,
+                             private val model: SingleLocationBrowserModel) : Command {
     override fun toString() = "Go To Location"
 
     override fun redo() = doAction(newLoc);
@@ -32,9 +27,9 @@ data class ChangeLocationCmd(private val oldLoc: LocationReference,
     }
 }
 
-data class ChangeModelCmd(private val browser: AbstractGenomeBrowser,
-                                 private val newModel: BrowserModel,
-                                 private val setup: (BrowserModel, BrowserModel) -> Unit) : Command {
+data class ChangeModelCmd(private val browser: GenomeBrowser,
+                          private val newModel: BrowserModel,
+                          private val setup: (BrowserModel, BrowserModel) -> Unit) : Command {
     private val oldModel = browser.browserModel
 
     override fun toString() = "Change model command"
@@ -43,8 +38,8 @@ data class ChangeModelCmd(private val browser: AbstractGenomeBrowser,
 }
 
 abstract class ChangeRangeCmd(protected val oldR: Range,
-                                     protected val newR: Range,
-                                     protected val model: BrowserModel) : Command {
+                              protected val newR: Range,
+                              protected val model: BrowserModel) : Command {
 
     override fun redo() = doAction(newR)
     override fun undo() = doAction(oldR)
@@ -144,7 +139,7 @@ object Commands {
     }
 
     @JvmStatic
-    fun createChangeModelCommand(browser: AbstractGenomeBrowser,
+    fun createChangeModelCommand(browser: GenomeBrowser,
                                  newModel: BrowserModel,
                                  setup: (BrowserModel, BrowserModel) -> Unit): ChangeModelCmd? {
         return ChangeModelCmd(browser, newModel, setup)

@@ -65,7 +65,7 @@ class BrowserAPITest : TestCase() {
                     }
                 }),
                 ImmutableMap.of(completion,
-                        { gq -> listOf(SimpleLocRef(Location(0, 888, Chromosome["to1", "chr1"]))) }))
+                                { gq -> listOf(SimpleLocRef(Location(0, 888, Chromosome["to1", "chr1"]))) }))
     }
 
     private fun createResponse(): HttpServletResponse {
@@ -256,7 +256,7 @@ class BrowserAPITest : TestCase() {
   "start": 0,
   "end": 10000000,
   "length": 10000000,
-  "positionHandlerY": 37,
+  "positionHandlerY": 39,
   "pointerHeight": 20
 }""", writer.toString())
     }

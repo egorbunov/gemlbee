@@ -16,14 +16,14 @@ import java.awt.Graphics
  * @author Sergei Lebedev
  * @since 10/06/15
  */
-class CpGITrackView : LocationAwareTrackView<CpGIsland>("CpG islands: groups = ${CpGITrackView.GROUP_COUNT}") {
+public class CpGITrackView : LocationAwareTrackView<CpGIsland>("CpG islands: groups = ${CpGITrackView.GROUP_COUNT}") {
     private var obsToExpRangeStep: Double = 0.0
     private var obsToExpRangeMin: Double = 0.0
 
     companion object {
         val CPG_ISLANDS = CacheBuilder.newBuilder().weakKeys().build<Chromosome, List<CpGIsland>>()
 
-        val GROUP_COUNT: Int = 4
+        public val GROUP_COUNT: Int = 4
         private val GROUP_COLORS: List<Color> = Colors.palette(GROUP_COUNT)
     }
 
@@ -44,7 +44,7 @@ class CpGITrackView : LocationAwareTrackView<CpGIsland>("CpG islands: groups = $
         super.paintItems(g, model, configuration, items)
     }
 
-    override fun getItemColor(item: CpGIsland): Color {
+    protected override fun getItemColor(item: CpGIsland): Color {
         if (obsToExpRangeStep == 0.0) {
             return GROUP_COLORS.first()
         }

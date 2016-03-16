@@ -1,6 +1,7 @@
-package org.jetbrains.bio.browser.tasks
+package org.jetbrains.bio.browser.web
 
 import com.google.common.base.Stopwatch
+import org.jetbrains.bio.browser.tasks.CancellableTask
 import java.awt.image.BufferedImage
 import java.util.*
 import java.util.concurrent.Callable
@@ -8,6 +9,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Single task to render with cancellation logic, which waits [DELAY] before being executed.
+ *
  * @author Oleg Shpynov
  * @since 21/12/15
  */

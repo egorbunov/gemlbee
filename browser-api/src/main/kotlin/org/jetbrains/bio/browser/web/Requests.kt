@@ -5,7 +5,7 @@ import org.jetbrains.bio.browser.headless.HeadlessGenomeBrowser
 import org.jetbrains.bio.browser.model.LocationReference
 import org.jetbrains.bio.browser.model.MultipleLocationsBrowserModel
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
-import org.jetbrains.bio.browser.util.LociCompletion
+import org.jetbrains.bio.browser.LociCompletion
 import java.awt.image.BufferedImage
 import java.util.concurrent.Callable
 import java.util.regex.Pattern

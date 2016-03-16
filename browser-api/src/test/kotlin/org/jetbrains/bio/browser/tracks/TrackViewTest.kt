@@ -5,8 +5,8 @@ import junit.framework.TestCase
 /**
  * @author Oleg Shpynov
  */
-class TrackViewTest : TestCase() {
-    fun testScaleSumFinite() {
+public class TrackViewTest : TestCase() {
+    public fun testScaleSumFinite() {
         val scale1 = TrackView.Scale(-10.0, 10.0)
         val scale2 = TrackView.Scale(-100.0, 100.0)
 
@@ -14,13 +14,13 @@ class TrackViewTest : TestCase() {
         TestCase.assertEquals(TrackView.Scale(-100.0, 100.0), scale2.union(scale1))
     }
 
-    fun testScaleSumNans() {
+    public fun testScaleSumNans() {
         val naScale = TrackView.Scale.undefined()
 
         TestCase.assertEquals(naScale, naScale.union(naScale))
     }
 
-    fun testScaleSumWithNan() {
+    public fun testScaleSumWithNan() {
         val scale1 = TrackView.Scale(-10.0, 10.0)
         val naScale = TrackView.Scale.undefined()
 

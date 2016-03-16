@@ -64,7 +64,7 @@ class TrackViewRendererTest {
         uiModel[TrackView.SHOW_AXIS] = true
         uiModel[TrackView.SHOW_LEGEND] = true
         TrackViewRenderer.paintToImage(img, model, img.width, img.height, trackView,
-                                       CancellableState.instance,
+                                       CancellableState.current(),
                                        false, uiModel)
         paintCompleted = true
     }

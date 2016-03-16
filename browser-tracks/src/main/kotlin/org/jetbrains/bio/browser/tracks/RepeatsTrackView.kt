@@ -23,7 +23,7 @@ import java.util.*
  * TODO: filter repeats not only by class, allow family & name
  * TODO: ability not to merge neighbours repeats
  */
-class RepeatsTrackView() : TrackView("Repeats") {
+public class RepeatsTrackView() : TrackView("Repeats") {
 
     private val REPEATS_CLASSES = Key<List<String>>("repeats_classes")
     private val REPEATS_TABLE = Key<GenomeMap<out Map<String, LocationList>>>("repeats_table")
@@ -77,13 +77,13 @@ class RepeatsTrackView() : TrackView("Repeats") {
         g.font = TrackUIUtil.SMALL_FONT
 
         // Draw repeats subtracks
-        val trackWidth = conf[TrackView.WIDTH]
+        val trackWidth = conf.get(TrackView.WIDTH)
         var screenY = 5
         g.color = Color.LIGHT_GRAY
         g.drawLine(0, screenY, trackWidth, screenY)
         for (i in 0..repeatsGroupsCount - 1) {
-            val className = repeatClassNames[i]
-            paintRepeatsSubTrack(g, repeatsTable[className] as LocationList, screenY, colors[i],
+            val className = repeatClassNames.get(i)
+            paintRepeatsSubTrack(g, repeatsTable.get(className) as LocationList, screenY, colors.get(i),
                                  model, trackWidth)
             screenY += repeatsSubTrackHeight + SPACER_HEIGHT
             g.color = Color.LIGHT_GRAY
@@ -106,7 +106,7 @@ class RepeatsTrackView() : TrackView("Repeats") {
     private fun paintRepeatsSubTrack(g: Graphics, repeatsList: LocationList, screenY: Int, color: Color,
                                      modelSnapshot: SingleLocationBrowserModel, trackWidth: Int) {
         paintRepeatsOnStrand(g, screenY, repeatsSubTrackHeight, color,
-                repeatsList[modelSnapshot.chromosome, Strand.PLUS], null, modelSnapshot, trackWidth)
+                             repeatsList.get(modelSnapshot.chromosome, Strand.PLUS), null, modelSnapshot, trackWidth)
     }
 
     private fun paintRepeatsOnStrand(g: Graphics, screenY: Int, imgHeight: Int, color: Color,
@@ -158,7 +158,7 @@ class RepeatsTrackView() : TrackView("Repeats") {
 
         var screenY = 5
         for (i in repeatClassNames.indices) {
-            TrackUIUtil.drawString(g, repeatClassNames[i],
+            TrackUIUtil.drawString(g, repeatClassNames.get(i),
                                    5, screenY + repeatsSubTrackHeight - 1,
                                    Color.BLACK)
             screenY += repeatsSubTrackHeight + SPACER_HEIGHT

@@ -6,13 +6,15 @@ import org.jetbrains.bio.browser.util.Key
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.genome.query.GenomeQuery
 import java.awt.Graphics
+import java.util.function.Consumer
+import javax.swing.JPanel
 
 /**
  * @author Roman.Chernyatchik
  */
 abstract class TrackView(title: String) {
     open var title: String = title
-        protected  set
+        protected set
 
     companion object {
         @JvmField val WIDTH: Key<Int> = Key("WIDTH")
@@ -79,7 +81,6 @@ abstract class TrackView(title: String) {
     open fun drawAxis(g: Graphics, width: Int, height: Int, drawInBG: Boolean, scales: List<Scale>) {
     }
 
-
     /**
      * @return Pair of min/max for each track
      */
@@ -106,7 +107,30 @@ abstract class TrackView(title: String) {
         override fun toString() = "[$min, $max]"
 
         companion object {
-            @JvmStatic fun undefined(): Scale = Scale(Double.NaN, Double.NaN)
+            @JvmStatic fun undefined() = Scale(Double.NaN, Double.NaN)
         }
     }
+}
+
+/**
+ * Marker interface of [TrackView] with controls UI
+ *
+ * @author Oleg Shpynov
+ * @since 6/29/15
+ */
+interface TrackViewWithControls {
+    /**
+     * Custom components panel with enabled/disabled events handler. Please disable your
+     * controls on process(false) request.
+
+     * @return Pair of panel and panel component enabled(true - enabled, false - disabled) handler.
+     */
+    fun createTrackControlsPane(): Pair<JPanel, Consumer<Boolean>>?
+
+    fun initTrackControlsPane() = createTrackControlsPane()?.first
+}
+
+interface TrackViewListener {
+    fun repaintRequired()
+    fun relayoutRequired()
 }

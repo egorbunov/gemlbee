@@ -82,7 +82,7 @@ open class MultiTrackView(val tracks: List<TrackView>, title: String) : TrackVie
     private fun createNewGraphics(width: Int, height: Int, g: Graphics, i: Int)
             = g.create(0, i * height / size, width, height / size)
 
-    override fun computeScale(model: SingleLocationBrowserModel,
+    public override fun computeScale(model: SingleLocationBrowserModel,
                                      conf: Storage): List<TrackView.Scale> {
         return IntStream.range(0, tracks.size).mapToObj { i ->
             tracks[i].computeScale(model, conf[TRACK_KEYS[i]])

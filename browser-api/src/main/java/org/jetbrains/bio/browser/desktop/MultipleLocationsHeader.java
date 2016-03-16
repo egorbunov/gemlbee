@@ -28,6 +28,11 @@ public class MultipleLocationsHeader extends Header {
     setPreferredSize(new Dimension(30, getPointerHandlerY() + POINTER_HEIGHT + 1));
   }
 
+  @Override
+  public int getHeight() {
+    return super.getHeight();
+  }
+
   public int getPointerHandlerY() {
     return 5 + 2 * (TrackUIUtil.SMALL_FONT_HEIGHT + TrackUIUtil.VERTICAL_SPACER);
   }

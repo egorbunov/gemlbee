@@ -10,17 +10,17 @@ import org.jetbrains.bio.genome.query.Query
 import org.jetbrains.bio.genome.query.locus.GeneLocusQuery
 import java.util.stream.Stream
 
-class LocusQueryBrowserModel private constructor(
+public class LocusQueryBrowserModel private constructor(
         id: String,
         originalModel: BrowserModel,
         locationReferences: List<LocationReference>,
-        val query: GenomeLocusQuery<Chromosome, *>)
+        public val query: GenomeLocusQuery<Chromosome, *>)
 : MultipleLocationsBrowserModel(id, originalModel, locationReferences) {
 
     companion object {
-        @JvmStatic fun create(id: String,
-                              query: GenomeLocusQuery<Chromosome, *>,
-                              model: BrowserModel): LocusQueryBrowserModel {
+        @JvmStatic public fun create(id: String,
+                                     query: GenomeLocusQuery<Chromosome, *>,
+                                     model: BrowserModel): LocusQueryBrowserModel {
             val gq = model.genomeQuery
             val lengths = TDoubleArrayList()
             val locations = MultipleLocationsBrowserModel.filter(

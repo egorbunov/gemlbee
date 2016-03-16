@@ -6,17 +6,20 @@ import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.genome.query.GenomeQuery
 
 /**
- * @author Roman.Chernyatchik
+ * @author Roman Chernyatchik
  */
 class SingleLocationBrowserModel @JvmOverloads constructor(
-        query: GenomeQuery,
-        chromosome: Chromosome = query.get().first(),
+        genomeQuery: GenomeQuery,
+        chromosome: Chromosome = genomeQuery.get().first(),
         range: Range = chromosome.range,
-        rangeMetaInfo: LocationReference? = null) : BrowserModel(query, range) {
+        rangeMetaInfo: LocationReference? = null)
+
+: BrowserModel(genomeQuery, range) {
 
     var chromosome: Chromosome = chromosome
         private set // chromosomeRange setter fires events
 
+    override val length: Int get() = chromosome.length
 
     val chromosomeRange: ChromosomeRange
         get() = range.on(chromosome)
@@ -40,12 +43,8 @@ class SingleLocationBrowserModel @JvmOverloads constructor(
         }
     }
 
-    override val length: Int
-        get() = chromosome.length
+    override fun presentableName() = "${chromosome.name}:${range.startOffset}-${range.endOffset}"
 
-    override fun presentableName(): String
-            = "${chromosome.name}:${range.startOffset}-${range.endOffset}"
-
-    override fun copy(): SingleLocationBrowserModel
-            = SingleLocationBrowserModel(genomeQuery, chromosome, range, rangeMetaInf)
+    override fun copy() = SingleLocationBrowserModel(genomeQuery, chromosome,
+                                                     range, rangeMetaInf)
 }

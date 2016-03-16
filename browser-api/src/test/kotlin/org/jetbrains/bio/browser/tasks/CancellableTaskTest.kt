@@ -1,89 +1,69 @@
 package org.jetbrains.bio.browser.tasks
 
-import junit.framework.TestCase
+import org.junit.Test
 import java.util.concurrent.Callable
 import java.util.concurrent.CancellationException
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 /**
  * @author Oleg Shpynov
  */
-class CancellableTaskTest : TestCase() {
-
+class CancellableTaskTest {
     private val intCallable = Callable<Int> {
         for (i in 0..9) {
-            CancellableState.instance.checkCanceled()
+            CancellableState.current().checkCanceled()
             Thread.sleep(100)
         }
+
         42
     }
+
     private val incorrectCallable = Callable<Int> { throw RuntimeException("WOOT") }
 
-    @Throws(Exception::class)
-    fun testNotReady() {
+    @Test fun notReady() {
         assertFalse(CancellableTask.of(intCallable).isDone)
     }
 
-    @Throws(Exception::class)
-    fun testCancelled() {
-        try {
-            CancellableTask.of(incorrectCallable).cancel().get()
-        } catch (e: CancellationException) {
-            return
-        }
-
-        fail("CancellationException expected")
+    @Test(expected = CancellationException::class) fun getAfterCancel() {
+        CancellableTask.of(incorrectCallable).cancel().get()
     }
 
-    @Throws(Exception::class)
-    fun testCancelledWaitAndGet() {
+    @Test fun cancelledWaitAndGet() {
         val task = CancellableTask.of(intCallable)
-        Thread(Runnable { task.cancel() }).start()
+        Thread { task.cancel() }.start()
         assertNull(task.waitAndGet())
     }
 
-    @Throws(Exception::class)
-    fun testWaitAndGet() {
+    @Test fun testWaitAndGet() {
         assertEquals(42, CancellableTask.of(intCallable).waitAndGet()!!.toInt())
     }
 
-    @Throws(Exception::class)
-    fun testRuntimeException() {
+    @Test(expected = RuntimeException::class) fun runtimeExceptionGet() {
         val cancellableTask = CancellableTask.of(incorrectCallable)
         Thread.sleep(200)
-        try {
-            cancellableTask.get()
-        } catch (e: RuntimeException) {
-            return
-        }
-        fail("exception expected")
+        cancellableTask.get()
     }
 
-
-    @Throws(Exception::class)
-    fun testRuntimeExceptionWait() {
-        try {
-            CancellableTask.of(incorrectCallable).waitAndGet()
-        } catch (e: RuntimeException) {
-            return
-        }
-        fail("exception expected")
+    @Test(expected = RuntimeException::class) fun runtimeExceptionWait() {
+        CancellableTask.of(incorrectCallable).waitAndGet()
     }
 }
+
 fun <T> CancellableTask<T>.waitAndGet(): T? {
     while (true) {
         if (cancelled) {
-            CancellableTask.LOG.trace("Cancelled $id")
+            println("Cancelled $id")
             return null
         }
         if (isDone) {
-            CancellableTask.LOG.trace("Loaded task $id")
+            println("Loaded task $id")
             return get()
         }
+
         try {
             Thread.sleep(1000)
-        } catch (ex: InterruptedException) {
-            // Ignore
-        }
+        } catch (ignored: InterruptedException) {}
     }
 }
-

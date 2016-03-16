@@ -6,18 +6,13 @@ import org.jetbrains.bio.genome.Location
 import org.jetbrains.bio.genome.Strand
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
-/**
- * @author Roman.Chernyatchik
- */
 class SimpleLocRefTest {
     @Test fun ref() {
         val loc = Location(0, 10, Chromosome["to1", "chr1"], Strand.PLUS)
         val locRef = SimpleLocRef(loc)
         assertEquals(loc, locRef.location)
         assertEquals("", locRef.name)
-        assertNull(locRef.metaData)
     }
 
     @Test fun refUpdate() {
@@ -29,7 +24,6 @@ class SimpleLocRefTest {
         assertEquals(loc, locRef.location)
 
         assertEquals(newLoc, newLocRef.location)
-        assertNull(newLocRef.metaData)
     }
 }
 
@@ -41,7 +35,6 @@ class GeneLocRefTest {
 
         assertEquals(someGene.location, locRef.location)
         assertEquals(someGene.getName(GeneAliasType.GENE_SYMBOL), locRef.name)
-        assertEquals(someGene, locRef.metaData)
     }
 
     @Test fun refCustomLocation() {
@@ -53,7 +46,6 @@ class GeneLocRefTest {
 
         assertEquals(loc, locRef.location)
         assertEquals(someGene.getName(GeneAliasType.GENE_SYMBOL), locRef.name)
-        assertEquals(someGene, locRef.metaData)
     }
 
     @Test fun refUpdate() {
@@ -69,6 +61,5 @@ class GeneLocRefTest {
 
         assertEquals(newLoc, newRef.location)
         assertEquals(someGene.getName(GeneAliasType.GENE_SYMBOL), newRef.name)
-        assertEquals(someGene, newRef.metaData)
     }
 }

@@ -10,7 +10,7 @@ import org.jdesktop.swingx.MultiSplitLayout;
 import org.jdesktop.swingx.painter.AlphaPainter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.bio.browser.AbstractGenomeBrowser;
+import org.jetbrains.bio.browser.GenomeBrowser;
 import org.jetbrains.bio.browser.headless.HeadlessGenomeBrowser;
 import org.jetbrains.bio.browser.model.BrowserModel;
 import org.jetbrains.bio.browser.tracks.TrackView;
@@ -122,7 +122,7 @@ public class TrackListComponent extends JPanel {
   protected JScrollPane createContentPane() {
     final JScrollPane scrollPane = new JScrollPane(VERTICAL_SCROLLBAR_AS_NEEDED, HORIZONTAL_SCROLLBAR_NEVER);
     // header
-    scrollPane.setColumnHeaderView(AbstractGenomeBrowser.createHeaderView(myBrowser.getBrowserModel()));
+    scrollPane.setColumnHeaderView(GenomeBrowser.Companion.createHeaderView(myBrowser.getBrowserModel()));
     scrollPane.getVerticalScrollBar().setUnitIncrement(20);
     scrollPane.getVerticalScrollBar().setBlockIncrement(20);
 

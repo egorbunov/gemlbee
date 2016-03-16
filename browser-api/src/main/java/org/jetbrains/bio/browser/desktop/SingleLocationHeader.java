@@ -32,6 +32,11 @@ public class SingleLocationHeader extends Header {
                                    myGridHeight + CytoBandsRenderer.height(TrackUIUtil.SMALL_FONT) + VERTICAL_MARGIN));
   }
 
+  @Override
+  public int getHeight() {
+    return super.getHeight();
+  }
+
   public int getPointerHandlerY() {
     return myGridHeight + CytoBandsRenderer.getPointerHandlerY();
   }

@@ -1,8 +1,11 @@
 package org.jetbrains.bio.browser.tracks
 
+import com.google.common.cache.CacheBuilder
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.browser.util.TrackUIUtil
+import org.jetbrains.bio.genome.Chromosome
+import org.jetbrains.bio.genome.Location
 import org.jetbrains.bio.genome.LocationAware
 import java.awt.Color
 import java.awt.Graphics
@@ -14,7 +17,7 @@ import java.awt.Graphics
  * @author Sergei Lebedev
  * @since 10/06/15
  */
-abstract class LocationAwareTrackView<T : LocationAware> protected constructor(title: String)
+public abstract class LocationAwareTrackView<T : LocationAware> protected constructor(title: String)
 : TrackView(title) {
 
     init {
@@ -70,4 +73,15 @@ abstract class LocationAwareTrackView<T : LocationAware> protected constructor(t
     protected abstract fun getItems(model: SingleLocationBrowserModel): List<T>
 
     protected open fun getItemColor(item: T): Color = Color.DARK_GRAY
+}
+
+public class LocationsTrackView(private val locations: List<Location>, title: String) :
+        LocationAwareTrackView<Location>(title) {
+
+    private val CACHE = CacheBuilder.newBuilder().weakKeys().build<Chromosome, List<Location>>()
+
+    override fun getItems(model: SingleLocationBrowserModel): List<Location> = CACHE[
+            model.chromosome, {
+                locations.filter { it.chromosome == model.chromosome }
+            }]
 }
