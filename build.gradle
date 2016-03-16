@@ -101,7 +101,7 @@ project(':data') {
 }
 
 
-project(':gemlbee') {
+project(':cla') {
     dependencies {
         compile project(':browser-api')
         compile project(':browser-tracks')
