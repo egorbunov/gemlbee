@@ -6,7 +6,7 @@ import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVPrinter
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
-import org.jetbrains.bio.util.LocksManager
+import org.jetbrains.bio.util.LockManager
 import java.io.*
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
@@ -158,6 +158,8 @@ fun Path.copy(target: Path, vararg options: StandardCopyOption) {
 
 fun Path.lines() = Files.lines(this)
 
+fun Path.readAllBytes() = Files.readAllBytes(this)
+
 fun Path.write(buf: String, vararg options: StandardOpenOption): Path {
     return write(buf.toByteArray(), *options)
 }
@@ -265,7 +267,7 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
                           block = read)
     } else {
         // Need to recalculate file:
-        LocksManager.synchronized(thisPathStr) { key, threadsLock ->
+        LockManager.synchronized(thisPathStr) { threadsLock ->
             // tmp file must be on the same storage as target to enable atomic move
             val lockPath = parent / "$fileName.lock"
             val lockPathStr = lockPath.toAbsolutePath().normalize().toString()
@@ -281,8 +283,8 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
                     // with *.lock file existing check. File lock is optional here.
                     throw IllegalStateException(
                             "$label: Failed to acquire a file lock $lockPathStr. " +
-                                    "If you're using NFS, please ensure that NFS " +
-                                    "lock daemon is running.", e)
+                            "If you're using NFS, please ensure that NFS " +
+                            "lock daemon is running.", e)
                 }
 
                 if (fsLock == null) {
@@ -308,7 +310,7 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
 
                     LOG.trace("$label: Released lock $lockPath")
                     threadsLock.unlock();
-                    LOG.trace("$label: Released lock key={$key}")
+                    LOG.trace("$label: Released lock key={$thisPathStr}")
 
                     result = LOG.time(level = Level.TRACE,
                                       message = "$label: Reading from $thisPathStr",
@@ -353,8 +355,7 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
 
                             res
                         } catch (e: Exception) {
-                            LOG.trace("$label: Error, cannot recalculate $tmpPathStr." +
-                                              " ${e.javaClass.simpleName}: ${e.message}")
+                            LOG.error("$label: Error, cannot recalculate $tmpPathStr.", e)
                             throw e
                         } finally {
                             // Captain says: first delete, than free lock. Other Apps will
@@ -430,6 +431,14 @@ fun Path.bufferedWriter(vararg options: OpenOption): BufferedWriter {
     // Use Path#toAbsolutePath(), otherwise it may have no parent
     toAbsolutePath().parent.createDirectories()
     return outputStream(*options).bufferedWriter()
+}
+
+@JvmOverloads fun Path.csvPrinter(format: CSVFormat = CSVFormat.TDF): CSVPrinter {
+    return format.print(bufferedWriter())
+}
+
+@JvmOverloads fun Path.csvParser(format: CSVFormat = CSVFormat.TDF): CSVParser {
+    return format.parse(bufferedReader())
 }
 
 fun Path.touch(): Path = when {

@@ -7,7 +7,7 @@ import org.apache.log4j.Logger
 /**
  *  Measures the running time of a given possibly impure [block].
  */
-inline fun <R> Logger.time(level: Level = Level.DEBUG,
+public inline fun <R> Logger.time(level: Level = Level.DEBUG,
                                   message: String = "",
                                   logStart: Boolean = true,
                                   block: () -> R): R {

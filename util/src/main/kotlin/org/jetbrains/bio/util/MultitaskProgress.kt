@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.LongAdder
  *
  * Note that reporting and finishing tasks that haven't been added isn't an error.
  */
-object MultitaskProgress {
+public object MultitaskProgress {
     private val LOG = Logger.getLogger(MultitaskProgress::class.java)
 
     var startTime: Long = 0
@@ -56,7 +56,7 @@ object MultitaskProgress {
      * the tracker is reset.
      * Tries to print progress by calling [reportIfNecessary].
      */
-    @JvmStatic fun addTask(taskID: Any, items: Long) {
+    public @JvmStatic fun addTask(taskID: Any, items: Long) {
         synchronized(taskID, {
             if (totalItemsByTasks.isEmpty()) {
                 reset()
@@ -76,12 +76,12 @@ object MultitaskProgress {
      * Finish tracking a task. The unused iterations reserved by the task are subtracted from the total pool.
      * Tries to print progress by calling [reportIfNecessary].
      */
-    @JvmStatic fun finishTask(taskID: Any) {
+    public @JvmStatic fun finishTask(taskID: Any) {
         synchronized(taskID, {
             if (!totalItemsByTasks.containsKey(taskID)) {
                 return
             }
-            totalItems.addAndGet(processedItemsByTasks[taskID]!!.toLong() - totalItemsByTasks[taskID]!!)
+            totalItems.addAndGet(processedItemsByTasks.get(taskID)!!.toLong() - totalItemsByTasks.get(taskID)!!)
             totalItemsByTasks.remove(taskID)
             processedItemsByTasks.remove(taskID)
             reportIfNecessary()
@@ -92,18 +92,18 @@ object MultitaskProgress {
      * Report that a task completed an iteration. If this exceeds the allotted number of iterations,
      * the number is doubled. Tries to print progress by calling [reportIfNecessary].
      */
-    @JvmStatic fun reportTask(taskID: Any) {
+    public @JvmStatic fun reportTask(taskID: Any) {
         if (!totalItemsByTasks.containsKey(taskID)) {
             return
         }
-        val processedItemsForTask = processedItemsByTasks[taskID]!!
-        val totalItemsForTask = totalItemsByTasks[taskID]!!
+        val processedItemsForTask = processedItemsByTasks.get(taskID)!!
+        val totalItemsForTask = totalItemsByTasks.get(taskID)!!
         processedItemsForTask.increment()
         processedItems.increment()
         if (processedItemsForTask.toLong() > totalItemsForTask) {
             synchronized(taskID) {
                 if (processedItemsForTask.toLong() > totalItemsForTask) {
-                    totalItemsByTasks[taskID] = totalItemsForTask * 2
+                    totalItemsByTasks.set(taskID, totalItemsForTask * 2)
                     totalItems.addAndGet(totalItemsForTask)
                 }
             }

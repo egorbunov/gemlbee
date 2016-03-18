@@ -64,13 +64,17 @@ object ClassProcessor {
         try {
             return clazzz.newInstance()
         } catch (e: Exception) {
-            // Constructor is private
+            // Constructor is private or exception in it
+            LOG.debug(e)
         }
-
         try {
-            return clazzz.getField("INSTANCE").get(clazzz)
+            val field = clazzz.getField("INSTANCE")
+            if (field != null) {
+                return field.get(clazzz)
+            }
         } catch (e: Exception) {
             // Cannot call getInstance
+            LOG.error(e)
         }
 
         // Give up, cannot initialize

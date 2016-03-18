@@ -133,10 +133,8 @@ chr4    55538009    55547347    KLF4    -
                     val lociPaths = options.valuesOf("loci") as List<Path>
                     try {
                         GeMLBeeCLA().launch(loadConfigs(input), lociPaths, serverMode, port)
-                    } catch (e: ConfigParsingException) {
-                        fail(e.message!!)
-                    } catch (e: YamlReader.YamlReaderException) {
-                        fail(e.message!!)
+                    } catch (t: Throwable) {
+                        fail(t.message!!)
                     }
 
                 }
@@ -173,13 +171,69 @@ chr4    55538009    55547347    KLF4    -
             }
             return configs
         }
+
+        fun trackView(path: Path, genomeQuery: GenomeQuery): TrackView {
+            val name = path.name
+            return when {
+                name.endsWith(".bed") || name.endsWith(".bed.zip") || name.endsWith(".bed.gz") -> {
+                    LOG.debug("Created Bed track view for $path")
+                    chIPSeqTrackView(genomeQuery, path)
+                }
+
+                name.endsWith(".bam") -> {
+                    LOG.debug("Created Methylome track view for $path")
+                    bsSeqTrackView(name, genomeQuery, path)
+                }
+
+
+                name.endsWith(".fastq") || name.endsWith(".fastq.gz") -> {
+                    LOG.debug("Created Kallisto track view for $path")
+                    rnaSeqTrackView(name, arrayOf(path), genomeQuery)
+                }
+
+
+                name.endsWith(".tdf") -> {
+                    LOG.debug("Created TDF track view for $path")
+                    tdfTrackView(path)
+                }
+
+            // as fastq reads folder:
+                path.isDirectory -> {
+                    LOG.debug("Created Kallisto track view for $path")
+                    rnaSeqTrackView(name, path.fastqReads, genomeQuery)
+                }
+
+                else ->
+                    throw IllegalArgumentException ("Unknown file type: ${path.toAbsolutePath()}")
+            }
+        }
+
+        private fun tdfTrackView(file: Path) = TdfTrackView(file)
+
+
+        private fun rnaSeqTrackView(condition: String, fastqReads: Array<Path>, gq: GenomeQuery): KallistoTrackView {
+            val query = KallistoQuery(gq.genome, CellId(condition, ""), fastqReads = fastqReads)
+            return KallistoTrackView(query)
+        }
+
+
+        private fun bsSeqTrackView(condition: String, gq: GenomeQuery, path: Path): MethylomeRawDataTrackView {
+            val query = MethylomeQuery.forFile(gq, condition, path, verboseDescription = true)
+            return MethylomeRawDataTrackView(query, CytosineContext.CG, 50)
+        }
+
+
+        private fun chIPSeqTrackView(gq: GenomeQuery, path: Path): BedCovTrackBinnedView {
+            val query = BedTrackQuery(gq, path)
+            return BedCovTrackBinnedView(query)
+        }
     }
 
     private fun launch(configs: List<Config>, lociPaths: List<Path>, serverMode: Boolean, port: Int) {
         val master = configs.first().genomeQuery
 
         LOG.info("Processing genomic markup tracks")
-        val tracks = arrayListOf(GenesTrackView(), CpGITrackView(), RepeatsTrackView(), SequenceTrack())
+        val tracks = arrayListOf<TrackView>(GenesTrackView())
 
         val completionGroups = HashMap(LociCompletion.DEFAULT_COMPLETION)
         parseCustomLoci(master, lociPaths, completionGroups)
@@ -190,8 +244,8 @@ chr4    55538009    55547347    KLF4    -
             LOG.info("Parsing loci to show")
             val fstPath = lociPaths.first()
             MultipleLocationsBrowserModel.create(fstPath.name,
-                                                 completionGroups[fstPath.name]!!,
-                                                 SingleLocationBrowserModel(master))
+                    completionGroups[fstPath.name]!!,
+                    SingleLocationBrowserModel(master))
         }
 
         LOG.info("Processing configuration data tracks")
@@ -206,8 +260,8 @@ chr4    55538009    55547347    KLF4    -
     }
 
     fun parseCustomLoci(genomeQuery: GenomeQuery,
-                               lociPaths: List<Path>,
-                               completionGroups: HashMap<String, (GenomeQuery) -> List<LocationReference>>) {
+                        lociPaths: List<Path>,
+                        completionGroups: HashMap<String, (GenomeQuery) -> List<LocationReference>>) {
 
         for (path in lociPaths) {
             val loci = arrayListOf<Pair<String, Location>>()
@@ -259,80 +313,23 @@ chr4    55538009    55547347    KLF4    -
         ServerUtil.startServer(port, handlers)
     }
 
-    fun configureTracks(configs: List<Config>, master: GenomeQuery, tracks: ArrayList<TrackView>) {
+    private fun configureTracks(configs: List<Config>, master: GenomeQuery, tracks: ArrayList<TrackView>) {
         for (config in configs) {
-            for (file in config.tracks) {
-                val fName = file.name
+            for (path in config.tracks) {
+                val trackView = trackView(path, config.genomeQuery)
                 val gq = config.genomeQuery
-                when {
-                    fName.endsWith(".bed") || fName.endsWith(".bed.zip") || fName.endsWith(".bed.gz") ->
-                        addChipSeq(master, gq, file, tracks)
-
-                    fName.endsWith(".bam") -> addBsSeq(fName, master, gq, file, tracks)
-
-                    fName.endsWith(".fastq") || fName.endsWith(".fastq.gz") ->
-                        addRnaSeq(fName, master, gq, tracks, arrayOf(file))
-
-                    fName.endsWith(".tdf") -> addTdf(file, master, gq, tracks)
-                    fName.endsWith(".bb") -> addBigBed(file, master, gq, tracks)
-
-                    // as fastq reads folder:
-                    file.isDirectory -> addRnaSeq(fName, master, gq, tracks, file.fastqReads)
-                    else -> unsupportedError(file)
+                if (master == gq) {
+                    tracks.add(trackView)
+                } else {
+                    tracks.add(LiftOverTrackView(trackView, master, gq))
                 }
             }
         }
     }
-
-    protected open fun addTdf(file: Path, master: GenomeQuery, gq: GenomeQuery, tracks: MutableList<TrackView>) {
-        tracks.add(wrap(master, gq, TdfTrackView(file)))
-    }
-
-    protected open fun addBigBed(file: Path, master: GenomeQuery, gq: GenomeQuery, tracks: MutableList<TrackView>) {
-        tracks.add(wrap(master, gq, BigBedTrackView(file, 100)))
-    }
-
-    protected open fun addRnaSeq(condition: String,
-                                 master: GenomeQuery,
-                                 gq: GenomeQuery,
-                                 tracks: MutableList<TrackView>,
-                                 fastqReads: Array<Path>) {
-        val query = KallistoQuery(gq.genome, CellId(condition, ""), fastqReads = fastqReads)
-        val trackView = KallistoTrackView(query)
-        tracks.add(wrap(master, gq, trackView))
-    }
-
-    protected open fun addBsSeq(condition: String,
-                                master: GenomeQuery,
-                                gq: GenomeQuery,
-                                trackPath: Path,
-                                tracks: MutableList<TrackView>) {
-        val query = MethylomeQuery.forFile(gq, condition, trackPath, verboseDescription = true)
-        val trackView = MethylomeRawDataTrackView(query, CytosineContext.CG, 50)
-        tracks.add(wrap(master, gq, trackView))
-    }
-
-    protected open fun addChipSeq(master: GenomeQuery, gq: GenomeQuery, trackPath: Path, tracks: MutableList<TrackView>) {
-        val query = BedTrackQuery(gq, trackPath)
-        tracks.add(wrap(master, gq, BedCovTrackBinnedView(query)))
-    }
-
-    private fun wrap(master: GenomeQuery, gq: GenomeQuery, trackView: TrackView) =
-            if (master == gq) {
-                trackView
-            } else {
-                LiftOverTrackView(trackView, master, gq)
-            }
-
-    protected open fun unsupportedError(trackPath: Path) {
-        throw ConfigParsingException("Unknown file type: ${trackPath.toAbsolutePath()}")
-    }
 }
 
 
-data class NamedLocRef(override val name:String, override val location: Location) : LocationReference {
-    val metaData: Any?
-        get() = null;
-
+data class NamedLocRef(override val name: String,
+                       override val location: Location) : LocationReference {
     override fun update(newLoc: Location) = NamedLocRef(name, newLoc)
 }

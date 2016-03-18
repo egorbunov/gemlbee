@@ -1,8 +1,8 @@
 package org.jetbrains.bio.util
 
 import org.jetbrains.bio.ext.*
+import org.junit.Before
 import org.junit.Test
-import org.openjdk.jmh.annotations.Setup
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -13,7 +13,7 @@ class PathExtensionsTest {
     var recalcFlag = AtomicInteger()
     var readFlag = AtomicInteger()
 
-    @Setup fun setup() {
+    @Before fun setup() {
         recalcFlag.set(0)
         readFlag.set(0)
     }

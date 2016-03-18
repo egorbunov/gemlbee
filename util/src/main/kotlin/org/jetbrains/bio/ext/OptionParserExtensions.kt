@@ -13,9 +13,17 @@ import java.util.function.Consumer
  */
 operator fun OptionSet.contains(option: String): Boolean = has(option)
 
+// Remove this once all the Java callers are konverted. There's
+// no way to annotate a Kotlin function a throwing exception, thus
+// I had to create a separate wrapper.
+fun OptionParser.parseLegacy(args: Array<String>, block: Consumer<OptionSet>) {
+    parse(args) { block.accept(it) }
+}
+
 fun OptionParser.parse(args: Array<String>, block: (OptionSet) -> Unit) {
     try {
-        acceptsAll(listOf("h", "?", "help"), "show help").forHelp()
+        // TODO fix me, once https://youtrack.jetbrains.com/issue/KT-11398 is fixed!
+        // acceptsAll(listOf("h", "?"), "show help").forHelp()
 
         val options = parse(*args)
         if (options.nonOptionArguments().isNotEmpty()) {

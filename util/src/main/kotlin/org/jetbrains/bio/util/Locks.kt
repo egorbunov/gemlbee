@@ -8,31 +8,35 @@ import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
 /**
- * @author Roman.Chernyatchik
+ * Fork/Join pool requires all blocking operations to be mediated by
+ * a [ForkJoinPool.ManagedBlocker] instance. This class abstracts this detail away
+ * by implementing Fork/Join-friendly [synchronized].
+ *
+ * @author Roman Chernyatchik
  */
-object LocksManager {
-    private val LOG = Logger.getLogger(LocksManager::class.java)
+object LockManager {
+    private val LOG = Logger.getLogger(LockManager::class.java)
 
     private val lockMap = CacheBuilder.newBuilder()
             .expireAfterAccess(1, TimeUnit.DAYS)
-            .maximumSize(100000)
-            .build<Any, Lock>()
+            .build<Any, ReentrantLock>()
 
     /**
-     * Synchronization using look associated with key. Locks are
-     * stored in cache with auto-cleanup for locks not accessed
-     * within one day.
+     * Fork/Join-friendly [synchronized].
      *
-     * Block - is block object, which can unlock lock if it
-     * non needed
+     * Locks are invalidated after 1 day.
+     *
+     * @param key an object to synchronize on.
+     * @param block a callback which is allowed (but not required)
+     *              to unlock the lock once it is not needed any more.
      */
-    fun synchronized(key: Any, block: (Any, Lock) -> Unit) {
-        val lock = lockMap[key, { ReentrantLock() }]
+    fun <R> synchronized(key: Any, block: (ReentrantLock) -> R): R {
+        val lock = lockMap[key, ::ReentrantLock]
         try {
             LOG.trace("Acquiring lock key={$key} ...")
             ForkJoinPool.managedBlock(ManagedLocker(lock))
             LOG.trace("Done, executing code key={$key} ...")
-            block(key, lock)
+            return block(lock)
         } finally {
             try {
                 lock.unlock()
@@ -42,8 +46,6 @@ object LocksManager {
             }
         }
     }
-
-
 }
 
 class ManagedLocker(private val lock: Lock) : ForkJoinPool.ManagedBlocker {
@@ -60,6 +62,7 @@ class ManagedLocker(private val lock: Lock) : ForkJoinPool.ManagedBlocker {
         if (!hasLock) {
             hasLock = lock.tryLock()
         }
+
         return hasLock
     }
 }

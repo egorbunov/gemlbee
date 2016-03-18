@@ -11,11 +11,11 @@ import java.nio.file.Path
  * @author Roman.Chernyatchik
  */
 class Config(
-    /** A genome query, which specifies genome build and chromosome restriction. */
-    val genomeQuery: GenomeQuery,
+        /** A genome query, which specifies genome build and chromosome restriction. */
+        val genomeQuery: GenomeQuery,
 
-    /** Data tracks */
-    val tracks: List<Path>) {
+        /** Data tracks */
+        val tracks: List<Path>) {
 
     companion object {
         val FORMAT = """YAML configuration for genome browser:
@@ -28,6 +28,7 @@ ${DataConfig.GENOME_DESCRIPTION}
 ${DataConfig.SUPPORTED_FILE_FORMATS}
 - *.tdf for any data
 """
+
         /**
          * A temporary object for loading weakly-typed YAML data.
          *
@@ -48,11 +49,9 @@ ${DataConfig.SUPPORTED_FILE_FORMATS}
             val proxy = reader.read(Config.Companion.Proxy::class.java)
             if (proxy != null) {
                 val genome = proxy.genome
-                if (genome.isNullOrEmpty()) {
-                    throw ConfigParsingException("Missing or empty genome")
-                }
-                val tracks = proxy.tracks ?: throw ConfigParsingException("Missing or empty tracks")
-                return Config(GenomeQuery.Companion.parse(genome), tracks.map { it.toPath() })
+                require(genome.isNotEmpty()) { "Missing or empty genome" }
+                requireNotNull(proxy.tracks) { "Missing or empty tracks" }
+                return Config(GenomeQuery.Companion.parse(genome), proxy.tracks!!.map { it.toPath() })
             }
             return null
         }
@@ -60,9 +59,8 @@ ${DataConfig.SUPPORTED_FILE_FORMATS}
         /** Loads configuration from a YAML file. */
         fun load(reader: Reader): Config {
             val config = load(YamlReader(reader))
-            return config ?: throw ConfigParsingException("Empty config")
+            requireNotNull(config) { "Empty config" }
+            return config!!
         }
     }
 }
-
-class ConfigParsingException(msg:String) : Exception(msg) {}

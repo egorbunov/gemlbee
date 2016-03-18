@@ -5,10 +5,7 @@ import com.esotericsoftware.yamlbeans.YamlReader
 import org.jetbrains.bio.ext.withTempFile
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 /**
  * @author Roman.Chernyatchik
@@ -33,7 +30,7 @@ Supported file formats:
 - *.fastq, *.fastq.gz file/folder for transcriptome
 - *.tdf for any data
 """,
-                     Config.FORMAT)
+                Config.FORMAT)
     }
 
     @Test fun loadTracksLength() {
@@ -58,54 +55,44 @@ Supported file formats:
     }
 
     @Test fun loadNoTracksValue() {
-        var msg = "<not occurred>"
-        try {
+        testException("Missing or empty tracks") {
             Config.load("genome: to1\ntracks:\n".reader())
-        } catch (e: ConfigParsingException) {
-            msg = e.message!!
         }
-        assertEquals("Missing or empty tracks", msg)
     }
 
     @Test fun loadNoTracksSection() {
-        var msg = "<not occurred>"
-        try {
+        testException("Missing or empty tracks") {
             Config.load("genome: to1\n".reader())
-        } catch (e: ConfigParsingException) {
-            msg = e.message!!
         }
-        assertEquals("Missing or empty tracks", msg)
     }
 
     @Test fun loadNoGenomeValue() {
-        var msg = "<not occurred>"
-        try {
+        testException("Missing or empty genome") {
             Config.load("genome:\ntracks:\n- /tmp/foo.bed".reader())
-        } catch (e: ConfigParsingException) {
-            msg = e.message!!
         }
-        assertEquals("Missing or empty genome", msg)
     }
 
     @Test fun loadNoGenomeSection() {
-        var msg = "<not occurred>"
-        try {
+        testException("Missing or empty genome") {
             val config = Config.load("tracks:\n- /tmp/foo.bed".reader())
             assertEquals("!", config.genomeQuery.build)
-        } catch (e: ConfigParsingException) {
-            msg = e.message!!
         }
-        assertEquals("Missing or empty genome", msg)
     }
 
     @Test fun loadEmpty() {
-        var msg = "<not occurred>"
-        try {
+        testException("Empty config") {
             Config.load("".reader())
-        } catch (e: ConfigParsingException) {
-            msg = e.message!!
         }
-        assertEquals("Empty config", msg)
+    }
+
+    private fun testException(msg: String, block: (Unit) -> Unit) {
+        try {
+            block.invoke(Unit)
+        } catch (t: Throwable) {
+            assertEquals(msg, t.message)
+            return
+        }
+        fail("No exception raised, expected: $msg")
     }
 
     @Test fun configList() {
