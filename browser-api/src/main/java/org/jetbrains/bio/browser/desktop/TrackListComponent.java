@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 
 import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER;
 import static javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED;
+import static org.jetbrains.bio.browser.SupportKt.screenToGenome;
 import static org.jetbrains.bio.ext.FormatterKt.asOffset;
 
 /**
@@ -101,7 +102,7 @@ public class TrackListComponent extends JPanel {
     initComponents();
 
     // subscribe on genome changed event: it may change visible tracks
-    browser.getBrowserModel().addModelListener(this::repaint);
+    browser.getModel().addListener(this::repaint);
 
     myUIModel.init(TrackView.SHOW_LEGEND, true);
     myUIModel.init(TrackView.SHOW_AXIS, true);
@@ -122,7 +123,7 @@ public class TrackListComponent extends JPanel {
   protected JScrollPane createContentPane() {
     final JScrollPane scrollPane = new JScrollPane(VERTICAL_SCROLLBAR_AS_NEEDED, HORIZONTAL_SCROLLBAR_NEVER);
     // header
-    scrollPane.setColumnHeaderView(GenomeBrowser.Companion.createHeaderView(myBrowser.getBrowserModel()));
+    scrollPane.setColumnHeaderView(GenomeBrowser.Companion.createHeaderView(myBrowser.getModel()));
     scrollPane.getVerticalScrollBar().setUnitIncrement(20);
     scrollPane.getVerticalScrollBar().setBlockIncrement(20);
 
@@ -333,7 +334,7 @@ public class TrackListComponent extends JPanel {
   @Override
   public void paint(@NotNull final Graphics g) {
 
-    paintGrid(myBrowser.getBrowserModel(), g, getVisibleWidth(), getHeight());
+    paintGrid(myBrowser.getModel(), g, getVisibleWidth(), getHeight());
 
     paintChildren(g);
 
@@ -391,9 +392,9 @@ public class TrackListComponent extends JPanel {
 
     g.fillRect(screenSelectionStartX, 0, screenSelectionEndX - screenSelectionStartX, getHeight());
 
-    final Range range = myBrowser.getBrowserModel().getRange();
-    final int selectionStartOffset = TrackUIUtil.screenToGenome(screenSelectionStartX, getVisibleWidth(), range);
-    final int selectionEndOffset = TrackUIUtil.screenToGenome(screenSelectionEndX, getVisibleWidth(), range);
+    final Range range = myBrowser.getModel().getRange();
+    final int selectionStartOffset = screenToGenome(screenSelectionStartX, getVisibleWidth(), range);
+    final int selectionEndOffset = screenToGenome(screenSelectionEndX, getVisibleWidth(), range);
     final int selectionLength = selectionEndOffset - selectionStartOffset;
 
     g.setColor(Color.BLACK);
@@ -418,9 +419,9 @@ public class TrackListComponent extends JPanel {
     for (int screenX = 0; screenX < width; screenX += 5) {
       g.drawLine(screenX, aimRegionSelectionPoint.y, screenX + 2, aimRegionSelectionPoint.y);
     }
-    final int currOffset = TrackUIUtil.screenToGenome(aimRegionSelectionPoint.x,
+    final int currOffset = screenToGenome(aimRegionSelectionPoint.x,
                                                       width,
-                                                      myBrowser.getBrowserModel().getRange());
+                                                      myBrowser.getModel().getRange());
     final String text = asOffset(currOffset) + " bp";
     TrackUIUtil.drawString(g, text, 5 + aimRegionSelectionPoint.x, aimRegionSelectionPoint.y - 5, Color.BLACK);
   }
@@ -486,11 +487,11 @@ public class TrackListComponent extends JPanel {
     }
     final List<TrackView> trackViews = trackViewComponents.stream()
         .map(TrackViewComponent::getTrackView).collect(Collectors.toList());
-    return HeadlessGenomeBrowser.paint(myBrowser.getBrowserModel(), trackViews, getWidth());
+    return HeadlessGenomeBrowser.paint(myBrowser.getModel(), trackViews, getWidth());
   }
 
   private File createScreenShotFile() {
-    final String prefix = "screenshot_" + myBrowser.getBrowserModel().presentableName().replace(":", "_");
+    final String prefix = "screenshot_" + myBrowser.getModel().toString().replace(":", "_");
     int i = 0;
     while (true) {
       final String name = prefix + (i == 0 ? "" : "_" + i) + ".png";

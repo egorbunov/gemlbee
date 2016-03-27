@@ -43,7 +43,7 @@ class SingleLocationBrowserModel @JvmOverloads constructor(
         }
     }
 
-    override fun presentableName() = "${chromosome.name}:${range.startOffset}-${range.endOffset}"
+    override fun toString() = "${chromosome.name}:${range.startOffset}-${range.endOffset}"
 
     override fun copy() = SingleLocationBrowserModel(genomeQuery, chromosome,
                                                      range, rangeMetaInf)

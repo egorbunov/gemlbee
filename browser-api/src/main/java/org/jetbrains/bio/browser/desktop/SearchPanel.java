@@ -23,8 +23,8 @@ import java.io.IOException;
 /**
  * @author Evgeny.Kurbatsky
  */
-public class ControlsPanel extends JPanel {
-  private static final Logger LOG = Logger.getLogger(ControlsPanel.class);
+public class SearchPanel extends JPanel {
+  private static final Logger LOG = Logger.getLogger(SearchPanel.class);
 
   private final DesktopGenomeBrowser myBrowser;
 
@@ -32,12 +32,12 @@ public class ControlsPanel extends JPanel {
   private final ModelListener myModelListener;
 
 
-  public ControlsPanel(final DesktopGenomeBrowser browser) {
+  public SearchPanel(final DesktopGenomeBrowser browser) {
     myBrowser = browser;
 
     // Genome name & change button
     final JLabel genomeLabel = new JLabel();
-    final GenomeQuery genomeQuery = myBrowser.getBrowserModel().getGenomeQuery();
+    final GenomeQuery genomeQuery = myBrowser.getModel().getGenomeQuery();
     genomeLabel.setText(genomeQuery.getGenome().getDescription() + ' ' + genomeQuery.getBuild());
     add(genomeLabel);
 
@@ -57,8 +57,8 @@ public class ControlsPanel extends JPanel {
 
     // Back forward icons are downloaded from here: http://www.myiconfinder.com/
     try {
-      final BufferedImage backImage = ImageIO.read(ControlsPanel.class.getResource("/back.png"));
-      final BufferedImage forwardImage = ImageIO.read(ControlsPanel.class.getResource("/forward.png"));
+      final BufferedImage backImage = ImageIO.read(SearchPanel.class.getResource("/back.png"));
+      final BufferedImage forwardImage = ImageIO.read(SearchPanel.class.getResource("/forward.png"));
       final int h = TrackUIUtil.DEFAULT_FONT_HEIGHT - 2;
       final JButton backButton = new JButton(new ImageIcon(backImage.getScaledInstance(h, h, 0)));
       backButton.setMaximumSize(new Dimension(h, h));
@@ -72,15 +72,15 @@ public class ControlsPanel extends JPanel {
       LOG.error(e);
     }
 
-    myModelListener = () -> setLocationText(myBrowser.getBrowserModel().presentableName());
-    setBrowserModel(browser.getBrowserModel());
+    myModelListener = () -> setLocationText(myBrowser.getModel().toString());
+    setBrowserModel(browser.getModel());
 
     // Init text
-    setLocationText(myBrowser.getBrowserModel().presentableName());
+    setLocationText(myBrowser.getModel().toString());
   }
 
   public void setBrowserModel(final BrowserModel browserModel) {
-    browserModel.addModelListener(myModelListener);
+    browserModel.addListener(myModelListener);
   }
 
   protected Pair<JComboBox<String>, JTextComponent> createPositionText() {
@@ -114,7 +114,7 @@ public class ControlsPanel extends JPanel {
       if (text != null && text.equals(selectedItem)) {
         final boolean changePosition = "comboBoxEdited".equals(e.getActionCommand());
         if (changePosition) {
-          if (text.equals(myBrowser.getBrowserModel().presentableName())) {
+          if (text.equals(myBrowser.getModel().toString())) {
             // relax guys, it's a fake call back, no action is required
             return;
           }
@@ -158,6 +158,7 @@ public class ControlsPanel extends JPanel {
     // Auto-completion by Control+Space
     inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, ActionEvent.CTRL_MASK),
                  inputMap.get(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0)));
+
     // ESC handling
     inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "GBrowserReturnFocusToTracksList");
     textEditorComponent.getActionMap().put("GBrowserReturnFocusToTracksList", new AbstractAction() {

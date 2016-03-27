@@ -2,6 +2,7 @@ package org.jetbrains.bio.browser.tracks
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.collect.ArrayListMultimap
+import org.jetbrains.bio.browser.genomeToScreen
 import org.jetbrains.bio.browser.model.GeneLocRef
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Storage
@@ -47,8 +48,8 @@ public class KallistoTrackView(private val inputQuery: InputQuery<List<Transcrip
 
                 levels.put(i, location)
 
-                val start = TrackUIUtil.genomeToScreen(location.startOffset, trackWidth, range)
-                val end = TrackUIUtil.genomeToScreen(location.endOffset, trackWidth, range)
+                val start = genomeToScreen(location.startOffset, trackWidth, range)
+                val end = genomeToScreen(location.endOffset, trackWidth, range)
 
                 g.color = if (locTranscript != null && locTranscript != transcript) {
                     Color.LIGHT_GRAY

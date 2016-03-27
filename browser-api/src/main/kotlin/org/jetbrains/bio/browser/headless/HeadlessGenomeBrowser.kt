@@ -1,10 +1,9 @@
 package org.jetbrains.bio.browser.headless
 
 import com.google.common.base.Stopwatch
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
+import org.jetbrains.bio.browser.Command
 import org.jetbrains.bio.browser.GenomeBrowser
-import org.jetbrains.bio.browser.command.Command
 import org.jetbrains.bio.browser.createAAGraphics
 import org.jetbrains.bio.browser.desktop.TrackListComponent
 import org.jetbrains.bio.browser.model.BrowserModel
@@ -29,7 +28,7 @@ import java.util.concurrent.Executors
  * @author Oleg Shpynov
  * @since 25/12/14
  */
-class HeadlessGenomeBrowser(override var browserModel: BrowserModel,
+class HeadlessGenomeBrowser(override var model: BrowserModel,
                             override val trackViews: List<TrackView>,
                             locationsMap: Map<String, (GenomeQuery) -> List<LocationReference>>)
 :
@@ -38,13 +37,13 @@ class HeadlessGenomeBrowser(override var browserModel: BrowserModel,
     override val locationsMap = locationsMap.mapKeys { it.key.toLowerCase() }
 
     @Throws(CancellationException::class)
-    fun paint(width: Int) = paint(browserModel, trackViews, width)
+    fun paint(width: Int) = paint(model, trackViews, width)
 
-    override fun execute(cmd: Command?) {
+    override fun execute(command: Command?) {
         // Web browser client maintains its own history, so the server
         // doesn't have to. See [DesktopGenomeBrowser.execute] for
         // alternative behaviour.
-        cmd?.redo()
+        command?.redo()
     }
 
     companion object {
@@ -101,7 +100,7 @@ class HeadlessGenomeBrowser(override var browserModel: BrowserModel,
                 y += trackHeight
                 tasks.add(Callable {
                     cancellableState.checkCanceled()
-                    LOG.time(Level.DEBUG, "Paint tracks: ${trackView.title}", false) {
+                    LOG.time(message = "Paint tracks: ${trackView.title}") {
                         TrackViewRenderer.paintHeadless(browserModel, trackGraphics, trackView,
                                                         width, trackHeight,
                                                         cancellableState)

@@ -2,12 +2,12 @@ package org.jetbrains.bio.browser.tracks
 
 import org.apache.log4j.Logger
 import org.jdesktop.swingx.graphics.BlendComposite
+import org.jdesktop.swingx.graphics.BlendComposite.BlendingMode
 import org.jetbrains.bio.big.BigFile
 import org.jetbrains.bio.big.BigSummary
 import org.jetbrains.bio.big.BigWigFile
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Key
-import org.jetbrains.bio.browser.util.Listener
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.browser.util.TrackUIUtil
 import org.jetbrains.bio.ext.asFileSize
@@ -21,6 +21,8 @@ import java.util.*
 import java.util.function.Consumer
 import java.util.stream.IntStream
 import javax.swing.*
+import kotlin.properties.Delegates.observable
+import kotlin.reflect.KProperty
 
 /**
  * A track view for BigWIG files.
@@ -28,60 +30,20 @@ import javax.swing.*
  * @author Roman Chernyatchik
  * @since 27/08/15
  */
-abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
+abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
                                title: String) :
         TrackView(title), TrackViewWithControls {
 
-    companion object {
-        @JvmStatic fun create(title: String, yAxisTitle: String,
-                              vararg descAndPaths: Pair<String, Path>): BigWigTrackView {
-            return object : BigWigTrackView(title = title) {
-                override val layersNumber = descAndPaths.size
-                override val strandedData = false
-                override val yAxisTitle = yAxisTitle
+    protected val uiOpts: Storage = Storage()
 
-                private val palette = when (layersNumber) {
-                    1 -> listOf(Color.BLACK)
-                    else -> Colors.palette(layersNumber, 200)
-                }
-
-                override fun renderer(layer: Int,
-                                      model: SingleLocationBrowserModel,
-                                      conf: Storage,
-                                      uiOptions: Storage)
-                        = ValueRenderer(palette[layer])
-
-                override fun getDataPath(layer: Int, strand: Strand,
-                                         model: SingleLocationBrowserModel,
-                                         conf: Storage)
-                        = descAndPaths[layer].second
-
-                override fun addTrackControls(): List<Pair<String, JComponent>> {
-                    return if (layersNumber > 2) {
-                        listOf(lineTypeSelector())
-                    } else {
-                        listOf()
-                    }
-                }
-
-                override fun drawLegend(g: Graphics, width: Int, height: Int, drawInBG: Boolean) {
-                    TrackUIUtil.drawBoxedLegend(g, width, height, drawInBG,
-                            *descAndPaths
-                                    .mapIndexed { layer, pair -> palette[layer].to(pair.first) }
-                                    .toTypedArray())
-                }
-            }
-        }
+    private fun <T> repaintOnChange(): (KProperty<*>, T, T) -> Unit = { _prop, old, new ->
+        fireRepaintRequired()
     }
 
-    ////////////////////////////////////////////////////////////
-    // ========================================================
-    // ========================================================
-    ////////////////////////////////////////////////////////////
-    protected val uiOpts: Storage = Storage()
-    protected val LINE_TYPE: Key<LineType> = Key("LINE_TYPE")
-    protected val BLENDING_MODE: Key<BlendComposite.BlendingMode> = Key("BLENDING_MODE")
-    protected val FLIP_PLOT_MODE: Key<Boolean> = Key("FLIP_PLOT_MODE")
+    protected var lineType: LineType by observable(lineType, repaintOnChange())
+    protected var blendingMode: BlendingMode? by observable(null, repaintOnChange())
+    protected var flipPlotMode: Boolean by observable(false, repaintOnChange())
+
     protected val TRACK_DATA: Key<TrackData> = Key("TRACK_DATA")
 
     private val NO_BLENDING = "<none>"
@@ -103,22 +65,6 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
                                        conf: Storage): Path;
 
     abstract val yAxisTitle: String
-
-    init {
-        // Properties
-        uiOpts.init(LINE_TYPE, lineType)
-        uiOpts.init(FLIP_PLOT_MODE, false)
-
-        // Repaint listener
-        uiOpts.addListener(object : Listener {
-            override fun valueChanged(key: Key<*>, value: Any?) {
-                when (key) {
-                    LINE_TYPE, FLIP_PLOT_MODE, BLENDING_MODE -> fireRepaintRequired()
-                }
-            }
-
-        })
-    }
 
     ////////////////////////////////////////////////////////////
     override fun initConfig(model: SingleLocationBrowserModel, conf: Storage) {
@@ -176,8 +122,8 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
 
     override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
         // Custom blending mode
-        if (uiOpts.contains(BLENDING_MODE)) {
-            (g as Graphics2D).composite = BlendComposite.getInstance(uiOpts[BLENDING_MODE])
+        if (blendingMode != null) {
+            (g as Graphics2D).composite = BlendComposite.getInstance(blendingMode)
         }
 
         IntStream.range(0, layersNumber).forEach() { i ->
@@ -237,7 +183,7 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
         for (strand in strands) {
             for (layer in 0 until layersNumber) {
                 renderer(layer, model, conf, uiOpts)?.let { renderer ->
-                    val pointData = conf[TRACK_DATA].get(layer, strand)
+                    val pointData = conf[TRACK_DATA][layer, strand]
                     check(pointData.isNotEmpty())
 
                     // summarized blocks min/max
@@ -264,8 +210,7 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
                            g: Graphics,
                            conf: Storage) {
 
-        val flipVertical = strand.choose(uiOpts[FLIP_PLOT_MODE], !uiOpts[FLIP_PLOT_MODE])
-        val lineType = uiOpts[LINE_TYPE]
+        val flipVertical = strand.isPlus() && flipPlotMode
 
         var prevLineEndX = -1
         var prevLineEndY = -1
@@ -340,8 +285,6 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
 
         val presentableScale = Scale(axisPresentableValue(rendererScale.min),
                 axisPresentableValue(rendererScale.max));
-        val flipPlot = uiOpts[FLIP_PLOT_MODE]
-
         if (strandedData) {
             // should be first minus, than plus
             listOf(Strand.MINUS, Strand.PLUS).forEach { strand ->
@@ -352,11 +295,11 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
                         presentableScale, drawInBG,
                         width, yAndHeight.second,
                         yAndHeight.first,
-                        strand.choose(flipPlot, !flipPlot))
+                        strand.isPlus() && flipPlotMode)
             }
         } else {
             TrackUIUtil.drawVerticalAxis(g, yAxisTitle, rendererScale, drawInBG, width, height,
-                                         flipVertical = flipPlot)
+                                         flipVertical = flipPlotMode)
         }
     }
 
@@ -407,18 +350,18 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
     }
 
     protected fun lineTypeSelector(): Pair<String, JComponent> {
-        val comboBox = JComboBox(LineType.values())
-        comboBox.alignmentX = Component.LEFT_ALIGNMENT
-
-        comboBox.selectedItem = uiOpts[LINE_TYPE]
-
-        comboBox.isEditable = false // no sense
-        comboBox.preferredSize = Dimension(150, comboBox.preferredSize.height)
-        comboBox.maximumSize = Dimension(200, comboBox.maximumSize.height)
-        comboBox.addActionListener() {
-            uiOpts[LINE_TYPE] = comboBox.selectedItem as LineType
+        val comboBox = JComboBox(LineType.values()).apply {
+            alignmentX = Component.LEFT_ALIGNMENT
+            selectedItem = lineType
+            isEditable = false // no sense
+            preferredSize = Dimension(150, preferredSize.height)
+            maximumSize = Dimension(200, maximumSize.height)
+            addActionListener() {
+                lineType = selectedItem as LineType
+            }
         }
-        return "Line type:".to(comboBox)
+
+        return "Line type:" to comboBox
     }
 
     /**
@@ -434,40 +377,77 @@ abstract class BigWigTrackView(val lineType: LineType = LineType.HIST_LIKE,
      * graphics2D.dispose();
      */
     protected fun blendingSelector(): Pair<String, JComponent> {
-        val items = arrayOf(NO_BLENDING, *BlendComposite.BlendingMode.values())
+        val comboBox = JComboBox(arrayOf(NO_BLENDING, *BlendingMode.values())).apply {
+            alignmentX = Component.LEFT_ALIGNMENT
+            selectedItem = blendingMode ?: NO_BLENDING
+            isEditable = false  // no sense
+            preferredSize = Dimension(150, preferredSize.height)
+            maximumSize = Dimension(200, maximumSize.height)
 
-        val comboBox = JComboBox(DefaultComboBoxModel(items))
-        comboBox.alignmentX = Component.LEFT_ALIGNMENT
-
-        comboBox.selectedItem = if (uiOpts.contains(BLENDING_MODE)) {
-            uiOpts[BLENDING_MODE]
-        } else {
-            NO_BLENDING  // XXX the inferred type is Any.
-        }
-        comboBox.isEditable = false // no sense
-        comboBox.preferredSize = Dimension(150, comboBox.preferredSize.height)
-        comboBox.maximumSize = Dimension(200, comboBox.maximumSize.height)
-
-        comboBox.addActionListener() {
-            val selectedItem = comboBox.selectedItem
-            val blendingMode = if (NO_BLENDING == selectedItem) {
-                null
-            } else {
-                selectedItem as BlendComposite.BlendingMode
+            addActionListener() {
+                val selectedItem = selectedItem
+                blendingMode = if (selectedItem == NO_BLENDING) {
+                    null
+                } else {
+                    selectedItem as BlendingMode
+                }
             }
-            uiOpts[BLENDING_MODE] = blendingMode
-
         }
-        return "Blending mode:".to(comboBox)
+
+        return "Blending mode:" to comboBox
     }
 
     protected fun flipPlotSelector(): Pair<String, JComponent> {
-        // Control
-        val cb = JCheckBox("Flip plot vertically", uiOpts[FLIP_PLOT_MODE])
-        cb.alignmentX = Component.LEFT_ALIGNMENT
-        cb.addActionListener() { uiOpts[FLIP_PLOT_MODE] = cb.isSelected }
+        val cb = JCheckBox("Flip plot vertically", flipPlotMode).apply {
+            alignmentX = Component.LEFT_ALIGNMENT
+            addActionListener() {
+                flipPlotMode = isSelected
+            }
+        }
 
-        return "".to(cb)
+        return "" to cb
+    }
+
+    companion object {
+        @JvmStatic fun create(title: String, yAxisTitle: String,
+                              vararg descAndPaths: Pair<String, Path>): BigWigTrackView {
+            return object : BigWigTrackView(title = title) {
+                override val layersNumber = descAndPaths.size
+                override val strandedData = false
+                override val yAxisTitle = yAxisTitle
+
+                private val palette = when (layersNumber) {
+                    1 -> listOf(Color.BLACK)
+                    else -> Colors.palette(layersNumber, 200)
+                }
+
+                override fun renderer(layer: Int,
+                                      model: SingleLocationBrowserModel,
+                                      conf: Storage,
+                                      uiOptions: Storage)
+                        = ValueRenderer(palette[layer])
+
+                override fun getDataPath(layer: Int, strand: Strand,
+                                         model: SingleLocationBrowserModel,
+                                         conf: Storage)
+                        = descAndPaths[layer].second
+
+                override fun addTrackControls(): List<Pair<String, JComponent>> {
+                    return if (layersNumber > 2) {
+                        listOf(lineTypeSelector())
+                    } else {
+                        listOf()
+                    }
+                }
+
+                override fun drawLegend(g: Graphics, width: Int, height: Int, drawInBG: Boolean) {
+                    TrackUIUtil.drawBoxedLegend(g, width, height, drawInBG,
+                                                *descAndPaths
+                                                        .mapIndexed { layer, pair -> palette[layer].to(pair.first) }
+                                                        .toTypedArray())
+                }
+            }
+        }
     }
 }
 

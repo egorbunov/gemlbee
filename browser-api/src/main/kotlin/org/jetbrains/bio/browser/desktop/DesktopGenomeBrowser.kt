@@ -3,10 +3,7 @@ package org.jetbrains.bio.browser.desktop
 import com.google.common.collect.ImmutableList
 import org.apache.log4j.Level
 import org.jdesktop.swingx.util.OS
-import org.jetbrains.bio.browser.GenomeBrowser
-import org.jetbrains.bio.browser.LociCompletion
-import org.jetbrains.bio.browser.command.Command
-import org.jetbrains.bio.browser.command.Commands
+import org.jetbrains.bio.browser.*
 import org.jetbrains.bio.browser.headless.HeadlessGenomeBrowser
 import org.jetbrains.bio.browser.model.BrowserModel
 import org.jetbrains.bio.browser.model.LocationReference
@@ -37,36 +34,37 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
     override val locationsMap = locationsMap.mapKeys { it.key.toLowerCase() }
 
     private lateinit var mainPanel: MainPanel
+
+    override var model: BrowserModel = browserModel
+        set(value: BrowserModel) {
+            if (value == model) {
+                return
+            }
+
+            val oldModel = field
+            field = value
+            execute(oldModel.changeTo(field) { oldModel, newModel ->
+                oldModel.removeListener(modelListener)
+                newModel.addListener(modelListener)
+                model = newModel
+                mainPanel.setModel(newModel)
+                model.modelChanged()
+            })
+        }
+
     private val modelListener = object : ModelListener {
         override fun modelChanged() = trackViews.forEach(TrackView::fireRepaintRequired)
     }
 
-    override var browserModel: BrowserModel = browserModel
-        set(model: BrowserModel) {
-            if (model == browserModel) {
-                return
-            }
-
-            field = model
-            execute(Commands.createChangeModelCommand(this, model) { oldModel, newModel ->
-                oldModel.removeModelListener(modelListener)
-                newModel.addModelListener(modelListener)
-                browserModel = newModel
-                mainPanel.setModel(newModel)
-                browserModel.modelChanged()
-            })
-        }
-
     init {
         Logs.addConsoleAppender(Level.INFO)
         require(trackViews.isNotEmpty())
-        browserModel.addModelListener(modelListener)
+        browserModel.addListener(modelListener)
     }
 
-    override fun execute(cmd: Command?) {
-        // If command wasn't rejected:
-        if (cmd != null) {
-            controller.execute(cmd)
+    override fun execute(command: Command?) {
+        if (command != null) {
+            controller.execute(command)
         }
     }
 
@@ -74,7 +72,9 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
         get() = mainPanel.trackListComponent.trackListController
 
     fun show() {
-        preprocessTracks(trackViews, browserModel.genomeQuery)
+        BrowserSplash.display()
+
+        preprocess()
 
         mainPanel = MainPanel(this, ImmutableList.copyOf(trackViews))
         val menu = JMenuBar()
@@ -106,11 +106,11 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
             return
         }
 
-        val model = browserModel as SingleLocationBrowserModel
+        val model = model as SingleLocationBrowserModel
         val locRef = LociCompletion.parse(text, model.genomeQuery)
         if (locRef != null) {
             try {
-                execute(Commands.createGoToLocationCommand(model, locRef))
+                execute(model.goTo(locRef))
             } catch (e: Exception) {
                 JOptionPane.showMessageDialog(mainPanel.parent,
                                               e.message,

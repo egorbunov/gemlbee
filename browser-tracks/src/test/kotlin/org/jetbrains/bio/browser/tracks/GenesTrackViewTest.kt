@@ -1,12 +1,9 @@
 package org.jetbrains.bio.browser.tracks
 
-import gnu.trove.list.TIntList
-import gnu.trove.list.array.TIntArrayList
 import org.jetbrains.bio.browser.tracks.ExonicBlock.*
 import org.jetbrains.bio.genome.Chromosome
 import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.genome.Strand
-import org.junit.Assert
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -223,98 +220,6 @@ class GenesTrackViewTest {
         assertEquals(expected, annotations);
     }
 
-    @Test fun findSuitableLine_emptyTable() {
-        val geneLines = Array<TIntList>(4) { TIntArrayList() };
-        assertFindSuitableLine(0 to 0,
-                               geneLines, 100, 50, 95)
-    }
-
-    @Test fun findSuitableLine_firstAvailable() {
-        val geneLines = Array<TIntList>(4) { TIntArrayList() };
-        geneLines[0].add(50);
-        assertFindSuitableLine(0 to 50,
-                               geneLines, 100, 50, 95)
-    }
-
-    @Test fun findSuitableLine_nextAvailable() {
-        val geneLines = Array<TIntList>(4) { TIntArrayList() };
-        geneLines[0].add(95);
-        geneLines[1].add(50);
-        assertFindSuitableLine(1 to 50,
-                               geneLines, 100, 50, 95)
-    }
-
-    @Test fun findSuitableLine_someAvailable() {
-        val geneLines = Array<TIntList>(5) { TIntArrayList() };
-        geneLines[0].add(105);
-        geneLines[1].add(100);
-        geneLines[2].add(95);
-        geneLines[3].add(50);
-        assertFindSuitableLine(3 to 50,
-                               geneLines, 100, 50, 95)
-    }
-
-    @Test fun findSuitableLine_lastAvailable() {
-        val geneLines = Array<TIntList>(4) { TIntArrayList() };
-        geneLines[0].add(105);
-        geneLines[1].add(105);
-        geneLines[2].add(105);
-        assertFindSuitableLine(3 to null,
-                               geneLines, 100, 50, 95)
-    }
-
-    @Test fun findSuitableLine_noAvailable() {
-        val geneLines = Array<TIntList>(4) { TIntArrayList() };
-        geneLines[0].add(105);
-        geneLines[1].add(105);
-        geneLines[2].add(105);
-        geneLines[3].add(105);
-        assertFindSuitableLine(3 to null,
-                               geneLines, 100, 50, 95)
-    }
-
-    @Test fun findSuitableLine_middleAvailable() {
-        val geneLines = Array<TIntList>(4) { TIntArrayList() };
-        geneLines[0].add(105);
-        geneLines[1].add(105);
-        geneLines[2].add(30);
-        geneLines[3].add(105);
-        assertFindSuitableLine(2 to 30,
-                               geneLines, 100, 50, 95)
-    }
-    @Test fun findSuitableLine_leftAligned() {
-        val geneLines = Array<TIntList>(4) { TIntArrayList() };
-        geneLines[0].add(105);
-        assertFindSuitableLine(1 to 0,
-                               geneLines, 0, -10, 0)
-    }
-
-    private fun assertFindSuitableLine(expected: Pair<Int, Int?>, geneLines: Array<TIntList>,
-                                       geneStartX: Int, labelPrefStartX: Int,
-                                       labelOverlappingStartX: Int) {
-        Assert.assertEquals(expected,
-                            GenesTrackView.findSuitableLine(geneLines, geneStartX,
-                                                            labelPrefStartX, labelOverlappingStartX))
-    }
-
-    @Test fun labeledGenePrefStarts_leftAlignedGene() {
-        assertEquals(-10 to 0, GenesTrackView.labeledGenePrefStarts(0, 200, 10, Strand.PLUS))
-        assertEquals(0 to 0, GenesTrackView.labeledGenePrefStarts(0, 200, 10, Strand.MINUS))
-    }
-
-    @Test fun labeledGenePrefStarts_shortLabel() {
-        assertEquals(90 to 100, GenesTrackView.labeledGenePrefStarts(100, 200, 10, Strand.PLUS))
-        assertEquals(100 to 100, GenesTrackView.labeledGenePrefStarts(100, 200, 10, Strand.MINUS))
-    }
-
-    @Test fun labeledGenePrefStarts_longLabel() {
-        assertEquals(50 to 100, GenesTrackView.labeledGenePrefStarts(100, 150, 50, Strand.PLUS))
-        assertEquals(100 to 100, GenesTrackView.labeledGenePrefStarts(100, 150, 50, Strand.MINUS))
-
-        assertEquals(20 to 70, GenesTrackView.labeledGenePrefStarts(100, 150, 80, Strand.PLUS))
-        assertEquals(100 to 100, GenesTrackView.labeledGenePrefStarts(100, 150, 80, Strand.MINUS))
-    }
-
     @Test fun determineLabelStartX_noOverlap() {
         assertEquals(88, GenesTrackView.determineLabelStartX(Strand.PLUS, 100, 200, 10, 85, 1000))
 
@@ -352,5 +257,73 @@ class GenesTrackViewTest {
 
         assertTrue(GenesTrackView.determineLabelBgDim(199, 50, Strand.MINUS, 60, 200))
         assertTrue(GenesTrackView.determineLabelBgDim(100, 50, Strand.MINUS, 60, 200))
+    }
+}
+
+class GeneShelfTest {
+    @Test fun findSuitableLine_emptyTable() {
+        assertEquals(IndexedValue(0, 0),
+                     GeneShelf(4).findSuitableLine(50, 95))
+    }
+
+    @Test fun findSuitableLine_firstAvailable() {
+        val geneShelf = GeneShelf(4)
+        geneShelf.add(0, 50)
+        assertEquals(IndexedValue(0, 50),
+                     geneShelf.findSuitableLine(50, 95))
+    }
+
+    @Test fun findSuitableLine_nextAvailable() {
+        val geneShelf = GeneShelf(4)
+        geneShelf.add(0, 95)
+        geneShelf.add(1, 50)
+        assertEquals(IndexedValue(1, 50),
+                     geneShelf.findSuitableLine(50, 95))
+    }
+
+    @Test fun findSuitableLine_someAvailable() {
+        val geneShelf = GeneShelf(5)
+        geneShelf.add(0, 105)
+        geneShelf.add(1, 100)
+        geneShelf.add(2, 95)
+        geneShelf.add(3, 50)
+        assertEquals(IndexedValue(3, 50),
+                     geneShelf.findSuitableLine(50, 95))
+    }
+
+    @Test fun findSuitableLine_lastAvailable() {
+        val geneShelf = GeneShelf(4)
+        geneShelf.add(0, 105)
+        geneShelf.add(1, 105)
+        geneShelf.add(2, 105)
+        assertEquals(IndexedValue(3, null),
+                     geneShelf.findSuitableLine(50, 95))
+    }
+
+    @Test fun findSuitableLine_noAvailable() {
+        val geneShelf = GeneShelf(4)
+        geneShelf.add(0, 105)
+        geneShelf.add(1, 105)
+        geneShelf.add(2, 105)
+        geneShelf.add(3, 105)
+        assertEquals(IndexedValue(3, null),
+                     geneShelf.findSuitableLine(50, 95))
+    }
+
+    @Test fun findSuitableLine_middleAvailable() {
+        val geneShelf = GeneShelf(4)
+        geneShelf.add(0, 105)
+        geneShelf.add(1, 105)
+        geneShelf.add(2, 30)
+        geneShelf.add(3, 105)
+        assertEquals(IndexedValue(2, 30),
+                     geneShelf.findSuitableLine(50, 95))
+    }
+
+    @Test fun findSuitableLine_leftAligned() {
+        val geneShelf = GeneShelf(4)
+        geneShelf.add(0, 105)
+        assertEquals(IndexedValue(1, 0),
+                     geneShelf.findSuitableLine(-10, 0))
     }
 }

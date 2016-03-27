@@ -64,9 +64,8 @@ object Browsers {
             return browsersCache.get(sessionId to name) {
                 CancellableTask.of(Callable {
                     val browser = REGISTERED_BROWSERS[name]!!.call();
-                    val genomeQuery = browser.browserModel.genomeQuery
                     // Init before usage
-                    browser.preprocessTracks(browser.trackViews, genomeQuery)
+                    browser.preprocess()
                     browser
                 })
             }

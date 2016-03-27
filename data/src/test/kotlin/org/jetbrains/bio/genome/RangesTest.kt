@@ -2,17 +2,15 @@ package org.jetbrains.bio.genome
 
 import com.google.common.math.IntMath
 import org.jetbrains.bio.genome.sequence.asNucleotideSequence
-import org.junit.Before
 import org.junit.Test
 import java.math.RoundingMode
-import kotlin.properties.Delegates
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class RangeTest {
-    @Test fun testContains() {
+    @Test fun testContainsOffset() {
         assertTrue(0 in Range(0, 10))
         assertTrue(9 in Range(0, 10))
         assertFalse(10 in Range(0, 10))
@@ -29,6 +27,11 @@ class RangeTest {
         assertTrue(Range(4, 5) intersects Range(0, 10))
     }
 
+    @Test fun testIntersection() {
+        assertEquals(Range(0, 0), Range(10, 11) intersection Range(11, 12))
+        assertEquals(Range(11, 12), Range(10, 12) intersection Range(11, 12))
+    }
+
     @Test fun testSlice() {
         var bins = 0
         var prevBound = 0
@@ -43,35 +46,10 @@ class RangeTest {
         assertEquals(103, prevBound)
         assertEquals(IntMath.divide(103, 10, RoundingMode.CEILING), bins)
     }
-
-    @Test fun testUnpack() {
-        val (start, end) = Range(10, 20)
-        assertEquals(start, 10)
-        assertEquals(end, 20)
-    }
-}
-
-class ChrRangeTest {
-    private var chromosome: Chromosome by Delegates.notNull()
-
-    @Before fun setUp() {
-        chromosome = Chromosome["to1", "chr1"]
-    }
-
-    @Test fun testUnpack() {
-        val (start, end, chr) = ChromosomeRange(10, 20, Chromosome["to1", "chr1"])
-        assertEquals(start, 10)
-        assertEquals(end, 20)
-        assertEquals("chr1", chr.name)
-    }
 }
 
 class LocationTest {
-    private var chromosome: Chromosome by Delegates.notNull()
-
-    @Before fun setUp() {
-        chromosome = Chromosome["to1", "chr1"]
-    }
+    private var chromosome = Chromosome["to1", "chr1"]
 
     @Test fun testGetLength_EmptyLocation() {
         assertEquals(0, Location(0, 0, chromosome, Strand.PLUS).length())
@@ -157,24 +135,15 @@ class LocationTest {
     }
 
     @Test fun testComparator() {
-        val location1 = Location(0, 100, Chromosome["to1", "chr1"], Strand.PLUS)
-        val location2 = Location(0, 100, Chromosome["to1", "chr1"], Strand.MINUS)
+        val location1 = Location(0, 100, chromosome, Strand.PLUS)
+        val location2 = Location(0, 100, chromosome, Strand.MINUS)
         assertNotEquals(0, location1.compareTo(location2))
 
-        val location3 = Location(0, 100, Chromosome["to1", "chr1"], Strand.PLUS)
+        val location3 = Location(0, 100, chromosome, Strand.PLUS)
         assertEquals(0, location1.compareTo(location3))
 
         val location4 = Location(0, 100, Chromosome["to1", "chr2"], Strand.PLUS)
         assertEquals(-1, location1.compareTo(location4))
         assertEquals(1, location4.compareTo(location1))
     }
-
-    @Test fun testUnpack() {
-        val (start, end, chr, strand) = Location(10, 20, Chromosome["to1", "chr1"], Strand.PLUS)
-        assertEquals(start, 10)
-        assertEquals(end, 20)
-        assertEquals("chr1", chr.name)
-        assertEquals(Strand.PLUS, strand)
-    }
-
 }

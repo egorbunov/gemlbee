@@ -3,10 +3,10 @@ package org.jetbrains.bio.browser.headless
 import org.jetbrains.bio.browser.desktop.MultipleLocationsHeader
 import org.jetbrains.bio.browser.desktop.SingleLocationHeader
 import org.jetbrains.bio.browser.model.MultipleLocationsBrowserModel
+import org.jetbrains.bio.browser.model.SimpleLocRef
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.genome.Chromosome
 import org.jetbrains.bio.genome.Location
-import org.jetbrains.bio.browser.model.SimpleLocRef
 import org.jetbrains.bio.genome.Strand
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.junit.Test

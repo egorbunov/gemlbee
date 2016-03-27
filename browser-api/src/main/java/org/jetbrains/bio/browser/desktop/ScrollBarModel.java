@@ -20,7 +20,7 @@ public class ScrollBarModel implements BoundedRangeModel {
 
   public ScrollBarModel(final BrowserModel browserModel) {
     setBrowserModel(browserModel);
-    myBrowserModel.addModelListener(() -> {
+    myBrowserModel.addListener(() -> {
         final ChangeEvent changeEvent = new ChangeEvent(myBrowserModel);
         for (final ChangeListener listener : myChangedListeners) {
           listener.stateChanged(changeEvent);

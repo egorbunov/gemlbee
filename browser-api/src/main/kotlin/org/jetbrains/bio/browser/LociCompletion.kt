@@ -11,8 +11,7 @@ import org.jetbrains.bio.genome.query.GenomeQuery
 import java.util.*
 
 object LociCompletion {
-
-    @JvmField val DEFAULT_COMPLETION = mapOf(
+    val DEFAULT_COMPLETION = mapOf(
             "housekeeping" to { gq: GenomeQuery ->
                 GeneResolver.resolve(gq.build, getHouseKeepingGenes2013Short(gq))
                         .map { GeneLocRef(it) }
@@ -29,7 +28,7 @@ object LociCompletion {
     /**
      * See [.parse]
      */
-    @JvmStatic operator fun get(genomeQuery: GenomeQuery): Set<String> {
+    operator fun get(genomeQuery: GenomeQuery): Set<String> {
         val result = HashSet<String>()
         for (chromosome in genomeQuery.get()) {
             result.add(chromosome.name)
@@ -41,12 +40,12 @@ object LociCompletion {
     }
 
     @VisibleForTesting
-    @JvmField internal val ABSTRACT_LOCATION_PATTERN = "([^:]+)(:([\\d\\.,]+)-([\\d\\.,]+))?".toPattern()
+    internal val ABSTRACT_LOCATION_PATTERN = "([^:]+)(:([\\d\\.,]+)-([\\d\\.,]+))?".toPattern()
 
     /**
      * See [.get]
      */
-    @JvmStatic fun parse(text: String, genomeQuery: GenomeQuery): LocationReference? {
+    fun parse(text: String, genomeQuery: GenomeQuery): LocationReference? {
         val name = text.toLowerCase().trim { it <= ' ' }
         val matcher = ABSTRACT_LOCATION_PATTERN.matcher(name)
         if (matcher.matches()) {

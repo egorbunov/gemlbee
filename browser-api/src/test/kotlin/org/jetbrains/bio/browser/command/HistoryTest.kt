@@ -1,9 +1,13 @@
 package org.jetbrains.bio.browser.command
 
+import org.jetbrains.bio.browser.History
+import org.jetbrains.bio.browser.changeTo
 import org.jetbrains.bio.browser.headless.HeadlessGenomeBrowser
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.tracks.TrackView
+import org.jetbrains.bio.browser.truncate
 import org.jetbrains.bio.browser.util.Storage
+import org.jetbrains.bio.browser.zoom
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.junit.Before
 import org.junit.Test
@@ -56,28 +60,28 @@ class HistoryTest {
     }
 
     @Test fun redoUndo() {
-        val range = browser.browserModel.range
-        history.execute(Commands.createZoomGenomeRegionCommand(browser.browserModel, 2.0))
+        val range = browser.model.range
+        history.execute(browser.model.zoom(2.0))
         history.undo()
-        assertEquals(range, browser.browserModel.range)
+        assertEquals(range, browser.model.range)
     }
 
     @Test fun redoUndoClear() {
-        history.execute(Commands.createZoomGenomeRegionCommand(browser.browserModel, 2.0))
-        val range = browser.browserModel.range
+        history.execute(browser.model.zoom(2.0))
+        val range = browser.model.range
         history.clear()
         history.undo()
-        assertEquals(range, browser.browserModel.range)
+        assertEquals(range, browser.model.range)
     }
 
     @Test fun changeModel() {
         val gq = GenomeQuery("to1")
         val last = gq.get().last()
-        history.execute(Commands.createChangeModelCommand(browser, SingleLocationBrowserModel(gq, last), { o, n ->
-            browser.browserModel = n
-        }))
-        assertEquals(last.length, browser.browserModel.range.endOffset)
+        history.execute(browser.model.changeTo(SingleLocationBrowserModel(gq, last)) { o, n ->
+            browser.model = n
+        })
+        assertEquals(last.length, browser.model.range.endOffset)
         history.undo()
-        assertEquals(gq.get().first().length, browser.browserModel.range.endOffset)
+        assertEquals(gq.get().first().length, browser.model.range.endOffset)
     }
 }

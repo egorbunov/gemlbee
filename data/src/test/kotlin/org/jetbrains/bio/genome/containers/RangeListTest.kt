@@ -27,7 +27,7 @@ class RangeListTest {
         assertFalse(Range(-100, 100) in rangeList(Range(0, 10)))
     }
 
-    @Test fun testIntersection() {
+    @Test fun testIntersectionLength() {
         val rl = rangeList(Range(0, 10))
         assertFalse(Range(5, 15) in rl)
         assertEquals(5, rl.intersectionLength(Range(5, 15)))
@@ -39,7 +39,7 @@ class RangeListTest {
         assertEquals(0, rl.intersectionLength(Range(10, 15)))
     }
 
-    @Test fun testDoubleIntersection() {
+    @Test fun testDoubleIntersectionLength() {
         assertTrue(Range(5, 15) in rangeList(Range(0, 10), Range(10, 20)))
         assertFalse(Range(5, 15) in rangeList(Range(0, 10), Range(11, 20)))
         assertEquals(10, rangeList(Range(0, 10), Range(10, 20)).intersectionLength(Range(5, 15)))

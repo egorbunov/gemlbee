@@ -57,7 +57,7 @@ class MethylomeRawDataTrackView @JvmOverloads constructor(
             = if (binSizes.size > 1) arrayListOf(binSizeSelector()) else arrayListOf()
 
     override fun axisPresentableValue(value: Double)
-            = Math.round(value * uiOpts[BIN_SIZE]).toDouble() // ~ cytosines count in bin
+            = Math.round(value * binSize).toDouble() // ~ cytosines count in bin
 
     override fun drawLegend(g: Graphics, width: Int, height: Int, drawInBG: Boolean) {
         val context = cContext?.toString() ?: "C"
@@ -92,8 +92,8 @@ class MethylomeRawDataTrackView @JvmOverloads constructor(
                           model: SingleLocationBrowserModel,
                           conf: Storage,
                           uiOptions: Storage) = when (layer) {
-        0 -> BinnedRenderer(uiOptions[BIN_SIZE], GC_CONTENT_COLOR)
-        1 -> McLevelRendered(model, conf, uiOptions[BIN_SIZE])
+        0 -> BinnedRenderer(binSize, GC_CONTENT_COLOR)
+        1 -> McLevelRendered(model, conf, binSize)
         else -> null
     }
 
@@ -113,19 +113,20 @@ class MethylomeRawDataTrackView @JvmOverloads constructor(
             var data = mcLevelByPxStrandedData[strand.ordinal]
             if (data == null) {
                 data = conf[TRACK_DATA][2, strand]
-                mcLevelByPxStrandedData[strand.ordinal] = data;
+                mcLevelByPxStrandedData[strand.ordinal] = data
             }
 
             val mLevel = data[pixelPos].let { (it.sum * binSize / it.count).toFloat() }
             val amount = if (mLevel.isFinite()) {
-                assert(mLevel < 2.0f) { "Unexpected normalized mLevel = ${mLevel}" }
+                assert(mLevel < 2.0f) { "Unexpected normalized mLevel = $mLevel" }
                 // May be around 1.0 due to summary round
                 Math.min(mLevel, 1.0f)
             } else {
                 mLevel
             }
 
-            return MethylomeRawDataTrackView.gradient(MethylomeRawDataTrackView.HIGH_MLEVEL_COLOR,
+            return MethylomeRawDataTrackView.gradient(
+                    MethylomeRawDataTrackView.HIGH_MLEVEL_COLOR,
                     MethylomeRawDataTrackView.LOW_MLEVEL_COLOR,
                     amount)
         }

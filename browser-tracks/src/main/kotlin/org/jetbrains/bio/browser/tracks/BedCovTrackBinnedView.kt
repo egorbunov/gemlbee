@@ -61,7 +61,7 @@ class BedCovTrackBinnedView @JvmOverloads constructor(
                           model: SingleLocationBrowserModel,
                           conf: Storage,
                           uiOptions: Storage)
-            = BinnedRenderer(uiOptions[BIN_SIZE], trackColor)
+            = BinnedRenderer(binSize, trackColor)
 
     override fun axisPresentableValue(value: Double) = Math.round(value).toDouble()
 

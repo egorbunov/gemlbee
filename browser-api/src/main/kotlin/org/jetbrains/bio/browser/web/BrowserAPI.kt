@@ -83,7 +83,7 @@ object BrowserAPI {
             val browser = browserTask.get()
             result["type"] = Response.Initialized.name
             result["completion"] = browser.locationCompletion
-            result["location"] = if (r != null && r.isNotBlank()) r else browser.browserModel.presentableName()
+            result["location"] = if (r != null && r.isNotBlank()) r else browser.model.toString()
             response.writer.write(GSON.toJson(result))
             return
         }
@@ -222,7 +222,7 @@ class State(val start: Int,
 
     companion object {
         fun of(genomeBrowser: HeadlessGenomeBrowser): State {
-            val browserModel = genomeBrowser.browserModel
+            val browserModel = genomeBrowser.model
             val range = browserModel.range
             val header = GenomeBrowser.createHeaderView(browserModel)
 

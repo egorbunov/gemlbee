@@ -1,9 +1,9 @@
 package org.jetbrains.bio.browser.tracks
 
 import com.google.common.cache.CacheBuilder
+import org.jetbrains.bio.browser.genomeToScreen
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Storage
-import org.jetbrains.bio.browser.util.TrackUIUtil
 import org.jetbrains.bio.genome.Chromosome
 import org.jetbrains.bio.genome.Location
 import org.jetbrains.bio.genome.LocationAware
@@ -17,8 +17,8 @@ import java.awt.Graphics
  * @author Sergei Lebedev
  * @since 10/06/15
  */
-public abstract class LocationAwareTrackView<T : LocationAware> protected constructor(title: String)
-: TrackView(title) {
+abstract class LocationAwareTrackView<T : LocationAware> protected constructor(title: String) :
+        TrackView(title) {
 
     init {
         preferredHeight = 10
@@ -33,7 +33,8 @@ public abstract class LocationAwareTrackView<T : LocationAware> protected constr
         paintItems(g, model, conf, items)
     }
 
-    protected open fun paintItems(g: Graphics, model: SingleLocationBrowserModel, configuration: Storage, items: List<T>) {
+    protected open fun paintItems(g: Graphics, model: SingleLocationBrowserModel,
+                                  configuration: Storage, items: List<T>) {
         val strands = items.asSequence().map { it.location.strand }.toSet()
         val trackWidth = configuration[TrackView.WIDTH]
         val trackHeight = configuration[TrackView.HEIGHT]
@@ -45,10 +46,13 @@ public abstract class LocationAwareTrackView<T : LocationAware> protected constr
                 "item chromosome = ${location.chromosome}, item = $item."
             }
 
-            val startOffset = TrackUIUtil.genomeToScreen(
-                    location.startOffset, trackWidth, model.range)
-            val endOffset = TrackUIUtil.genomeToScreen(
-                    location.endOffset, trackWidth, model.range)
+            val (startOffset, endOffset) = location.toRange() intersection model.range
+            if (startOffset == endOffset) {
+                continue  // Empty intersection.
+            }
+
+            val startX = genomeToScreen(startOffset, trackWidth, model.range)
+            val endX = genomeToScreen(endOffset, trackWidth, model.range)
 
             // XXX use y-shift to differentiate between the items on
             // both strands.
@@ -59,13 +63,13 @@ public abstract class LocationAwareTrackView<T : LocationAware> protected constr
             }
 
             g.color = getItemColor(item)
-            if (endOffset == startOffset) {
+            if (endX == startX) {
                 // draw 3 x height: rectangle
                 val width = 3
-                g.fillRect(startOffset - 1, shift, width, trackHeight)
+                g.fillRect(startX - 1, shift, width, trackHeight)
             } else {
-                val width = endOffset - startOffset
-                g.fillRect(startOffset, shift, width, trackHeight)
+                val width = endX - startX
+                g.fillRect(startX, shift, width, trackHeight)
             }
         }
     }
@@ -75,13 +79,14 @@ public abstract class LocationAwareTrackView<T : LocationAware> protected constr
     protected open fun getItemColor(item: T): Color = Color.DARK_GRAY
 }
 
-public class LocationsTrackView(private val locations: List<Location>, title: String) :
+class LocationsTrackView(private val locations: List<Location>, title: String) :
         LocationAwareTrackView<Location>(title) {
 
     private val CACHE = CacheBuilder.newBuilder().weakKeys().build<Chromosome, List<Location>>()
 
-    override fun getItems(model: SingleLocationBrowserModel): List<Location> = CACHE[
-            model.chromosome, {
-                locations.filter { it.chromosome == model.chromosome }
-            }]
+    override fun getItems(model: SingleLocationBrowserModel): List<Location> {
+        return CACHE.get(model.chromosome) {
+            locations.filter { it.chromosome == model.chromosome }
+        }
+    }
 }

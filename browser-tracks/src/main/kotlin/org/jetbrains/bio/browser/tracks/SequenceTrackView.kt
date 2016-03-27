@@ -1,8 +1,8 @@
  package org.jetbrains.bio.browser.tracks
 
+import org.jetbrains.bio.browser.genomeToScreen
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Storage
-import org.jetbrains.bio.browser.util.TrackUIUtil
 import org.jetbrains.bio.genome.sequence.Nucleotide
 import sun.font.FontDesignMetrics
 import java.awt.Color
@@ -43,8 +43,8 @@ class SequenceTrack : TrackView("Chromosome sequence") {
                 val b = sequence.byteAt(i)
                 g.color = COLORS[if (b < 0) 4 else b.toInt()]
 
-                val thisStartX = TrackUIUtil.genomeToScreen(i, trackWidth, model.range)
-                val nextStartX = TrackUIUtil.genomeToScreen(i + 1, trackWidth, model.range)
+                val thisStartX = genomeToScreen(i, trackWidth, model.range)
+                val nextStartX = genomeToScreen(i + 1, trackWidth, model.range)
                 if (drawSequence) {
                     val ch = Nucleotide.getChar(b).toUpperCase()
                     g.drawString(Character.toString(ch), thisStartX + 1, textY)

@@ -8,7 +8,6 @@ import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.genome.query.GenomeQuery
 import java.util.*
 import java.util.stream.Collectors
-import java.util.stream.IntStream
 import java.util.stream.Stream
 
 /**
@@ -25,6 +24,46 @@ open class MultipleLocationsBrowserModel protected constructor(
         BrowserModel(originalModel.genomeQuery, initRange) {
 
     override val length: Int get() = cumulativeLength.last()
+
+    fun visibleLocations(): List<LocationReference> {
+        val (visibleStart, visibleEnd) = range
+
+        val startIndex = index(visibleStart + 1)
+        check(visibleStart < cumulativeLength[startIndex])
+        check(startIndex == 0 || visibleStart >= cumulativeLength[startIndex - 1])
+
+        val endIndex = index(visibleEnd)
+        check(endIndex == 0 || visibleEnd > cumulativeLength[endIndex - 1])
+        check(visibleEnd <= cumulativeLength[endIndex])
+
+        val visibleLocs = locationReferences.subList(
+                startIndex, startIndex + Math.max(1, endIndex - startIndex + 1)).toMutableList()
+
+        // First and last location may be partly visible in current range, so let's cut them off:
+
+        // Correct first:
+        val first = visibleLocs[0]
+        val firstLoc = first.location
+        val dStart = if (startIndex > 0) visibleStart - cumulativeLength[startIndex - 1] else visibleStart
+        visibleLocs[0] = first.update(firstLoc.copy(startOffset = firstLoc.startOffset + dStart))
+
+        // Correct last:
+        val last = visibleLocs[visibleLocs.size - 1]
+        val lastLoc = last.location
+        val dEnd = visibleEnd - cumulativeLength[endIndex]
+        visibleLocs[visibleLocs.size - 1] = last.update(lastLoc.copy(endOffset = lastLoc.endOffset + dEnd))
+
+        return visibleLocs
+    }
+
+    private fun index(offset: Int) = Arrays.binarySearch(cumulativeLength, offset)
+            .let { if (it < 0) it.inv() else it }
+
+    override fun toString() = "$id:${range.startOffset}-${range.endOffset}"
+
+    override fun copy() = MultipleLocationsBrowserModel(id, originalModel,
+                                                        locationReferences,
+                                                        cumulativeLength, range)
 
     companion object {
         const val MAX_LOCATIONS: Long = 10000
@@ -60,59 +99,4 @@ open class MultipleLocationsBrowserModel protected constructor(
                     .collectHack(Collectors.toList())
         }
     }
-
-    override fun presentableName() = "$id:${range.startOffset}-${range.endOffset}"
-
-    fun visibleLocations(): List<LocationReference> {
-        val visibleStart = range.startOffset
-        val visibleEnd = range.endOffset
-
-        val (startIndex, endIndex ) = visibleLocsStartEndIndexes()
-        val visibleLocationsIndexes
-                = IntStream.range(startIndex,
-                                  startIndex + Math.max(1, endIndex - startIndex + 1))
-        val visibleLocs = visibleLocationsIndexes.mapToObj { i -> locationReferences[i] }
-                .collectHack(Collectors.toList())
-
-        // First and last location may be partly visible in current range, so let's cut them off:
-
-        // Correct first:
-        val first = visibleLocs[0]
-        val firstLoc = first.location
-        val dStart = if (startIndex > 0) visibleStart - cumulativeLength[startIndex - 1] else visibleStart
-        visibleLocs[0] = first.update(firstLoc.copy(startOffset = firstLoc.startOffset + dStart))
-
-        // Correct last:
-        val last = visibleLocs[visibleLocs.size - 1]
-        val lastLoc = last.location
-        val dEnd = visibleEnd - cumulativeLength[endIndex]
-        visibleLocs[visibleLocs.size - 1] = last.update(lastLoc.copy(endOffset = lastLoc.endOffset + dEnd))
-
-        return visibleLocs
-    }
-
-    private fun visibleLocsStartEndIndexes(range: Range = this.range): Pair<Int, Int> {
-        val visibleStart = range.startOffset
-        val visibleEnd = range.endOffset
-
-        val startIndex = index(visibleStart + 1)
-        // Check start index
-        check(visibleStart < cumulativeLength[startIndex])
-        check(startIndex == 0 || visibleStart >= cumulativeLength[startIndex - 1])
-
-        val endIndex = index(visibleEnd)
-        // Check end index
-        check(endIndex == 0 || visibleEnd > cumulativeLength[endIndex - 1])
-        check(visibleEnd <= cumulativeLength[endIndex])
-
-        return startIndex.to(endIndex)
-    }
-
-    private fun index(offset: Int) = Arrays.binarySearch(cumulativeLength, offset)
-            .let { if (it < 0) it.inv() else it }
-
-    override fun copy() = MultipleLocationsBrowserModel(id, originalModel,
-                                                        locationReferences,
-                                                        cumulativeLength, range)
-
 }

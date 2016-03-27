@@ -1,57 +1,34 @@
 package org.jetbrains.bio.browser.util
 
-import junit.framework.TestCase
+import org.junit.Before
+import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
-class StorageTest : TestCase() {
-
+class StorageTest {
     lateinit private var storage: Storage
 
-    @Throws(Exception::class)
-    override fun setUp() {
-        super.setUp()
+    @Before fun setUp() {
         storage = Storage()
     }
 
-    @Throws(Exception::class)
-    fun testInit() {
+    @Test fun testInit() {
         val key = Key<Any>("KEY")
         storage.init(key, 1)
         assertEquals(1, storage[key])
     }
 
-    @Throws(Exception::class)
-    fun testSetGet() {
+    @Test fun testSetGet() {
         val key = Key<Any>("KEY")
         storage.init(key, 1)
-        var changed: Boolean
-        storage.addListener(object: Listener {
-            override fun valueChanged(key: Key<*>, value: Any?) {
-                changed = true;
-            }
-        })
+
         assertEquals(1, storage[key])
-        changed = false
         storage[key] = 2
-        assertTrue(changed)
-
-        changed = false
-        storage[key] = null
-        assertTrue(changed)
-        changed = false
-        storage[key] = null
-        assertFalse(changed)
-
-        changed = false
-        storage[key] = 1
-        assertTrue(changed)
-        changed = false
-        storage[key] = 1
-        assertFalse(changed)
+        assertEquals(2, storage[key])
     }
 
-    @Throws(Exception::class)
-    fun testSetNullValue() {
+    @Test fun testSetNullValue() {
         val key = Key<Any>("KEY")
         storage.init(key, 1)
         storage[key] = null
@@ -59,8 +36,7 @@ class StorageTest : TestCase() {
         assertFalse(storage.contains(key))
     }
 
-    @Throws(Exception::class)
-    fun testListener() {
+    @Test fun testListener() {
         val key = Key<Any>("KEY")
         val counter = AtomicInteger()
         storage.addListener(object: Listener {

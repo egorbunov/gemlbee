@@ -18,7 +18,7 @@ object BrowserSplash : JDialog(Frame()) {
     var logAppender: Appender? = null
 
     init {
-        icon = ImageIcon(ImageIO.read(ControlsPanel::class.java.getResource("/splash.png")))
+        icon = ImageIcon(ImageIO.read(SearchPanel::class.java.getResource("/splash.png")))
         contentPane.layout = BorderLayout()
         contentPane.add(object : JLabel(icon) {
             override fun paintComponent(g: Graphics) {

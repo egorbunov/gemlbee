@@ -1,12 +1,6 @@
-package org.jetbrains.bio.browser.command
+package org.jetbrains.bio.browser
 
 import java.util.*
-
-/** A GoF command as is. */
-interface Command {
-    fun redo()
-    fun undo()
-}
 
 class History {
     // Stacks are emulated via 'ArrayDeque' as per 'Stack' JavaDoc

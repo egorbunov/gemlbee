@@ -26,7 +26,7 @@ class SingleLocationBrowserModelTest {
         modelChangedMarker.set(false)
 
         browserModel.setChromosomeRange(Range(0, 10).on(chromosome1))
-        browserModel.addModelListener(listener)
+        browserModel.addListener(listener)
     }
 
     @Test fun testListenerRangeChangedSame() {
@@ -72,7 +72,7 @@ class SingleLocationBrowserModelTest {
         assertTrue(modelChangedMarker.get())
 
         // unsubscribe:
-        browserModel.removeModelListener(listener)
+        browserModel.removeListener(listener)
 
         browserModel.setChromosomeRange(Range(100, 150).on(chromosome2))
         modelChangedMarker.set(false)
@@ -183,8 +183,8 @@ class SingleLocationBrowserModelTest {
     @Test fun testGetCurrentPositionPresentableName() {
         val genomeQuery = GenomeQuery("to1")
         assertEquals("chr1:0-10000000",
-                     SingleLocationBrowserModel(genomeQuery).presentableName())
+                     SingleLocationBrowserModel(genomeQuery).toString())
         browserModel.setChromosomeRange(Range(10, 400).on(chromosome1))
-        assertEquals("chr1:10-400", browserModel.presentableName())
+        assertEquals("chr1:10-400", browserModel.toString())
     }
 }

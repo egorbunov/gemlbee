@@ -44,7 +44,7 @@ class RenderComponent(val trackView: TrackView,
     @Volatile private var currentImage: BufferedImage? = null
 
     init {
-        trackView.addEventsListener(this)
+        trackView.addListener(this)
     }
 
     private fun restart() {
@@ -66,7 +66,7 @@ class RenderComponent(val trackView: TrackView,
 
     override fun relayoutRequired() {
         trace("Relayout required")
-        restart()
+
         SwingUtilities.invokeLater {
             // Invalidate the component and all its parents.
             var c: Component? = this
@@ -75,6 +75,10 @@ class RenderComponent(val trackView: TrackView,
                 c.validate()
                 c = c.parent
             }
+
+            // This should be safe to invoke from EDT thread because
+            // rendering is done via thread pool. See [CancellableTask].
+            restart()
         }
     }
 
@@ -127,8 +131,10 @@ class RenderComponent(val trackView: TrackView,
     private fun paintToBuffer(): BufferedImage {
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
         try {
+            // This *can* throw a 'CancellationException'. I'm not sure
+            // why we don't handle it.
             TrackViewRenderer.paintToImage(image,
-                                           browser.browserModel.copy(), width, height,
+                                           browser.model.copy(), width, height,
                                            trackView,
                                            CancellableState.current(),
                                            true, uiModel)
@@ -160,7 +166,7 @@ class RenderComponent(val trackView: TrackView,
 
     fun dispose() {
         timerStop()
-        trackView.removeEventsListener(this)
+        trackView.removeListener(this)
     }
 
     companion object {

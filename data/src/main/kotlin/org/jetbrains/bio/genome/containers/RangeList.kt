@@ -4,7 +4,12 @@ import com.google.common.collect.Iterables
 import com.google.common.collect.UnmodifiableIterator
 import gnu.trove.list.TIntList
 import gnu.trove.list.array.TIntArrayList
+import org.apache.commons.csv.CSVFormat
+import org.jetbrains.bio.ext.bufferedReader
+import org.jetbrains.bio.ext.bufferedWriter
 import org.jetbrains.bio.genome.Range
+import java.io.IOException
+import java.nio.file.Path
 import java.util.*
 
 /**
@@ -95,6 +100,13 @@ class RangeList internal constructor(
         return acc
     }
 
+    @Throws(IOException::class)
+    fun save(path: Path) = CSVFormat.TDF.print(path.bufferedWriter()).use {
+        for (range in this) {
+            it.printRecord(range.startOffset, range.endOffset)
+        }
+    }
+
     override fun iterator() = object : UnmodifiableIterator<Range>() {
         private var current = 0
 
@@ -108,6 +120,13 @@ class RangeList internal constructor(
     }
 
     override fun toString() = "[${joinToString(", ")}]"
+
+    companion object {
+        @Throws(IOException::class)
+        fun load(path: Path) = CSVFormat.TDF.parse(path.bufferedReader()).use {
+            it.map { Range(it[0].toInt(), it[1].toInt()) }.toRangeList()
+        }
+    }
 }
 
 /**
@@ -142,7 +161,9 @@ operator fun Range.minus(ranges: List<Range>): List<Range> {
     return acc
 }
 
-fun rangeList(vararg ranges: Range): RangeList = ranges.asList().toRangeList()
+fun rangeList(vararg ranges: Range) = ranges.asIterable().toRangeList()
+
+fun Sequence<Range>.toRangeList() = asIterable().toRangeList()
 
 fun Iterable<Range>.toRangeList(): RangeList {
     val copy = sorted()

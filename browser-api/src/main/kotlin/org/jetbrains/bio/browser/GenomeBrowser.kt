@@ -1,10 +1,7 @@
 package org.jetbrains.bio.browser
 
-import com.google.common.collect.Lists
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
-import org.jetbrains.bio.browser.command.Command
-import org.jetbrains.bio.browser.command.Commands
 import org.jetbrains.bio.browser.desktop.Header
 import org.jetbrains.bio.browser.desktop.MultipleLocationsHeader
 import org.jetbrains.bio.browser.desktop.SingleLocationHeader
@@ -14,6 +11,7 @@ import org.jetbrains.bio.ext.time
 import org.jetbrains.bio.genome.LocusType
 import org.jetbrains.bio.genome.query.GenomeLocusQuery
 import org.jetbrains.bio.genome.query.GenomeQuery
+import java.util.*
 
 /**
  * Genome browser is a graphical interface for exploring genomic data.
@@ -28,18 +26,16 @@ import org.jetbrains.bio.genome.query.GenomeQuery
  */
 interface GenomeBrowser {
 
-    var browserModel: BrowserModel
+    var model: BrowserModel
 
     val trackViews: List<TrackView>
 
     val locationsMap: Map<String, (GenomeQuery) -> List<LocationReference>>
 
-    fun execute(cmd: Command?)
-
     // Add completion for Loci and preconfigured locations
     val locationCompletion: List<String> get() {
-        val result = Lists.newArrayList<String>()
-        result.addAll(LociCompletion[browserModel.genomeQuery])
+        val result = ArrayList<String>()
+        result.addAll(LociCompletion[model.genomeQuery])
         result.addAll(locationsMap.keys)
         for (locusType in LocusType.values()) {
             result.add(if (locusType === LocusType.WHOLE_GENE) "genes" else locusType.toString())
@@ -58,29 +54,51 @@ interface GenomeBrowser {
     }
 
     /**
+     * Executes a given command.
+     *
+     * A no-op if a [command] is `null`.
+     */
+    fun execute(command: Command?)
+
+    /**
+     * Sequentially preprocesses tracks before rendering.
+     *
+     * @see TrackView.preprocess for possible preprocessing use-cases.
+     */
+    fun preprocess() {
+        // The lack of parallelism here is intentional. Preprocessing
+        // is expected to be CPU/RAM-consuming.
+        val log = Logger.getRootLogger()
+        for (trackView in trackViews) {
+            log.time(Level.INFO, "Preprocess track: '${trackView.title}'") {
+                trackView.preprocess(model.genomeQuery)
+            }
+        }
+    }
+
+    /**
      * Tries to process given text as [MultipleLocationsBrowserModel]
      *
      * @return true if successful and text was recognized as multiple locations model
      */
     fun handleMultipleLocationsModel(text: String): Boolean {
-        val model = browserModel
-        val locationsMap = locationsMap
+        val current = model
 
         // Process particular location
         val matcher = LociCompletion.ABSTRACT_LOCATION_PATTERN.matcher(text)
         if (matcher.matches()) {
             // Key is before range
             val key = matcher.group(1)
-            if (model !is MultipleLocationsBrowserModel || key != model.id) {
+            if (current !is MultipleLocationsBrowserModel || key != current.id) {
                 val lf = locationsMap[key]
                 if (lf != null) {
-                    browserModel = MultipleLocationsBrowserModel.create(key, lf, getOriginalModel(model))
+                    model = MultipleLocationsBrowserModel.create(key, lf, getOriginalModel(current))
                 } else {
                     val query = GenomeLocusQuery.of(key)
                     if (query != null) {
-                        browserModel = LocusQueryBrowserModel.create(key, query, getOriginalModel(model))
+                        model = LocusQueryBrowserModel.create(key, query, getOriginalModel(current))
                     } else {
-                        browserModel = getOriginalModel(model)
+                        model = getOriginalModel(current)
                         return false
                     }
                 }
@@ -92,28 +110,14 @@ interface GenomeBrowser {
             if (startGroup != null && endGroup != null) {
                 val start = startGroup.replace("\\.|,".toRegex(), "").toInt()
                 val end = endGroup.replace("\\.|,".toRegex(), "").toInt()
-                execute(Commands.createZoomToRegionCommand(model, start, end - start))
+                execute(current.zoomAt(start, end))
             }
             return true
         }
 
         // Otherwise restore original model
-        browserModel = getOriginalModel(model)
+        model = getOriginalModel(current)
         return false
-    }
-
-    /**
-     * Preprocess tracks before rendering, ensure that necessary data is loaded/cached for future
-     * track fast rendering.
-     */
-    fun preprocessTracks(trackViews: List<TrackView>, genomeQuery: GenomeQuery) {
-        // Do it sequentially, preprocessing is expected to be CPU and MEM consuming
-        val log = Logger.getRootLogger()
-        for (trackView in trackViews) {
-            log.time(Level.INFO, "Preprocess track: '${trackView.title}'", true) {
-                trackView.preprocess(genomeQuery)
-            }
-        }
     }
 
     companion object {

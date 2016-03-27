@@ -9,7 +9,6 @@ data class Key<T>(val id: String) {
     fun valueOf(v: Any): T = v as T
 }
 
-@FunctionalInterface
 interface Listener {
     fun valueChanged(key: Key<*>, value: Any?)
 }

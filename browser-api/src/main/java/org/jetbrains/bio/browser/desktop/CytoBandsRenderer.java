@@ -1,8 +1,6 @@
 package org.jetbrains.bio.browser.desktop;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
-import org.jetbrains.bio.browser.util.TrackUIUtil;
+import kotlin.collections.CollectionsKt;
 import org.jetbrains.bio.genome.Chromosome;
 import org.jetbrains.bio.genome.CytoBand;
 import org.jetbrains.bio.genome.Location;
@@ -10,11 +8,12 @@ import org.jetbrains.bio.genome.Range;
 import sun.font.FontDesignMetrics;
 
 import java.awt.*;
-import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.jetbrains.bio.browser.SupportKt.genomeToScreen;
 import static org.jetbrains.bio.browser.desktop.SingleLocationHeader.VERTICAL_MARGIN;
 
 /**
@@ -32,7 +31,7 @@ public class CytoBandsRenderer {
     GIEMSA_COLORS.put("acen", new Color(136, 208, 255));
     GIEMSA_COLORS.put("gvar", new Color(111, 188, 112));
     GIEMSA_COLORS.put("stalk", new Color(207, 162, 255));
-    GIEMSA_COLORS.put("unknown region tag", new Color(255, 162, 32));
+    GIEMSA_COLORS.put("unknown", new Color(255, 162, 32));
   }
 
   public static final int IDEOGRAM_HEIGHT = Header.POINTER_HEIGHT - 5;
@@ -43,8 +42,7 @@ public class CytoBandsRenderer {
 
     final int plotY = y + VERTICAL_MARGIN;
 
-    final java.util.List<CytoBand> bands = Lists.newArrayList(chr.getCytoBands());
-    bands.sort(Ordering.natural());
+    final java.util.List<CytoBand> bands = CollectionsKt.sorted(chr.getCytoBands());
 
     final Range chrRange = chr.getRange();
 
@@ -52,54 +50,34 @@ public class CytoBandsRenderer {
     g.setColor(Color.BLACK);
     g.drawRect(0, plotY, width - 1, IDEOGRAM_HEIGHT - 1);
 
-    // Transform for painting text 90 angle rotated
-    final Graphics2D g2 = (Graphics2D) g;
-    final AffineTransform originalTransform = g2.getTransform();
-    final Object originalAntiAliasingSetting = g2.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING);
-
-    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
     // Draw bands
-    for (final CytoBand chromosomeBand : bands) {
-      final Location locusLocation = chromosomeBand.getLocation();
-      final int locusStartOffset = locusLocation.getStartOffset();
-      final int locusEndOffset = locusLocation.getEndOffset();
+    final Color unknownColor = GIEMSA_COLORS.get("unknown");
+    for (final CytoBand band : bands) {
+      final Location location = band.getLocation();
 
-      // Filter only bands in range
-      final int locusStartX = Math.max(0, TrackUIUtil.genomeToScreen(locusStartOffset, width, chrRange));
-      final int locusEndX = Math.min(width - 1, TrackUIUtil.genomeToScreen(locusEndOffset,
-                                                                           width, chrRange));
+      final int startX = genomeToScreen(location.getStartOffset(), width, chrRange);
+      final int endX = genomeToScreen(location.getEndOffset(), width, chrRange);
 
-      final int locusLengthX = (locusEndX - locusStartX);
+      final int locusLengthX = endX - startX;
       if (locusLengthX > 0) {
-        final String gieStain = chromosomeBand.getGieStain();
+        final Color background = GIEMSA_COLORS.getOrDefault(band.getGieStain(), unknownColor);
+        g.setColor(background);
+        g.fillRect(startX, plotY + 1, locusLengthX, IDEOGRAM_HEIGHT - 2);
 
-        // Color according to gie stain
-        Color color = GIEMSA_COLORS.get("unknown region tag");
-        final Color gieColor = GIEMSA_COLORS.get(gieStain);
-        if (gieColor != null) {
-          color = gieColor;
+        final Rectangle2D bounds = g.getFontMetrics().getStringBounds(band.getName(), g);
+        if (bounds.getWidth() <= locusLengthX) {
+          g.setColor(foregroundColor(background));
+          g.drawString(band.getName(),
+                       startX + (locusLengthX -  (int) bounds.getWidth()) / 2,
+                       plotY + (int) bounds.getHeight());
         }
-
-        g.setColor(color);
-        g.fillRect(locusStartX, plotY + 1, locusLengthX, IDEOGRAM_HEIGHT - 2);
-
-        g.setColor(Color.BLACK);
-        g2.translate((float) locusStartX + 5, plotY + IDEOGRAM_HEIGHT + 5);
-        g2.rotate(Math.toRadians(90));
-        g2.drawString(chromosomeBand.getName(), 0, 0);
-        g2.setTransform(originalTransform);
       }
     }
-    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, originalAntiAliasingSetting);
-    g2.setTransform(originalTransform);
 
     // Draw centromere
     final Range centromere = chr.getCentromere();
-    final int centromereLX = TrackUIUtil.genomeToScreen(centromere.getStartOffset(),
-                                                        width, chrRange);
-    final int centromereRX = TrackUIUtil.genomeToScreen(centromere.getEndOffset(),
-                                                        width, chrRange);
+    final int centromereLX = genomeToScreen(centromere.getStartOffset(), width, chrRange);
+    final int centromereRX = genomeToScreen(centromere.getEndOffset(), width, chrRange);
     final int centromereX = centromereLX + (centromereRX - centromereLX) / 2;
     final int centromereY = plotY + IDEOGRAM_HEIGHT / 2;
     g.setColor(Color.WHITE);
@@ -120,11 +98,16 @@ public class CytoBandsRenderer {
     drawLegend(g, y + height(font) - legendHeight(font));
   }
 
+  private static Color foregroundColor(final Color background) {
+    if (background == Color.BLACK || background == Color.DARK_GRAY) {
+      return Color.WHITE;
+    } else {
+      return Color.BLACK;
+    }
+  }
 
   public static int height(final Font font) {
-    return VERTICAL_MARGIN
-        + IDEOGRAM_HEIGHT + FontDesignMetrics.getMetrics(font).stringWidth("p99.99")
-        + 10 + legendHeight(font);
+    return VERTICAL_MARGIN + IDEOGRAM_HEIGHT + 10 + legendHeight(font);
   }
 
   public static int getPointerHandlerY() {

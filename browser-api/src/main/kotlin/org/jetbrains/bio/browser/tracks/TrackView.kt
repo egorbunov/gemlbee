@@ -35,11 +35,18 @@ abstract class TrackView(title: String) {
 
 
     /**
-     * Preprocess track before browser has been shown, ensure that necessary data is loaded/cached for future
-     * track fast rendering.
+     * Preprocesses the track before rendering.
+     *
+     * The track should ensure all the necessary data is computed and available
+     * for fast access.
+     *
+     * Examples:
+     *
+     * - fit model to the data,
+     * - download gene annotations,
+     * - compute summary statistics over the data.
      */
-    open fun preprocess(genomeQuery: GenomeQuery) {
-    }
+    open fun preprocess(genomeQuery: GenomeQuery) {}
 
     /**
      * Init config before rendering. Same conf will be used in computeScale(..) and paintTrack(..) methods
@@ -47,11 +54,11 @@ abstract class TrackView(title: String) {
     open fun initConfig(model: SingleLocationBrowserModel, conf: Storage) {
     }
 
-    open fun addEventsListener(listener: TrackViewListener) {
+    open fun addListener(listener: TrackViewListener) {
         listeners.add(listener)
     }
 
-    open fun removeEventsListener(listener: TrackViewListener) {
+    open fun removeListener(listener: TrackViewListener) {
         listeners.remove(listener)
     }
 
@@ -107,7 +114,7 @@ abstract class TrackView(title: String) {
         override fun toString() = "[$min, $max]"
 
         companion object {
-            @JvmStatic fun undefined() = Scale(Double.NaN, Double.NaN)
+            fun undefined() = Scale(Double.NaN, Double.NaN)
         }
     }
 }

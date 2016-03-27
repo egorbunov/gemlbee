@@ -38,7 +38,7 @@ public class TrackViewComponent extends JComponent {
 
     // track title
     final JLabel titleLabel = new JLabel();
-    updateTitleLabelText(trackView, titleLabel);
+    titleLabel.setText(trackView.getTitle());
     add(titleLabel);
     myMouseEventsTargets.add(titleLabel);
 
@@ -63,11 +63,6 @@ public class TrackViewComponent extends JComponent {
     final int otherComponentsPreferredHeight = preferredHeight - drawingAreaPreferredHeight;
     final int newDrawingAreaPreferredHeight = newHeight - otherComponentsPreferredHeight;
     myRenderComponent.setPreferredHeight(newDrawingAreaPreferredHeight);
-  }
-
-
-  protected void updateTitleLabelText(final TrackView trackView, final JLabel titleLabel) {
-    titleLabel.setText(trackView.getTitle());
   }
 
   public boolean isSelected() {

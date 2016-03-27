@@ -4,14 +4,13 @@ import kotlin.Pair;
 import org.jdesktop.swingx.util.OS;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.bio.browser.command.Command;
-import org.jetbrains.bio.browser.command.Commands;
-import org.jetbrains.bio.browser.command.History;
+import org.jetbrains.bio.browser.Command;
+import org.jetbrains.bio.browser.CommandsKt;
+import org.jetbrains.bio.browser.History;
 import org.jetbrains.bio.browser.model.BrowserModel;
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel;
 import org.jetbrains.bio.browser.tracks.TrackView;
 import org.jetbrains.bio.browser.util.Storage;
-import org.jetbrains.bio.browser.util.TrackUIUtil;
 import org.jetbrains.bio.genome.Range;
 
 import javax.swing.*;
@@ -19,6 +18,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
+
+import static org.jetbrains.bio.browser.SupportKt.screenToGenome;
 
 /**
  * @author Roman.Chernyatchik
@@ -78,7 +79,7 @@ public class TrackListController {
           doClearTracksSelection();
 
           // Clear selected genes
-          final BrowserModel model = myBrowser.getBrowserModel();
+          final BrowserModel model = myBrowser.getModel();
           if (model instanceof SingleLocationBrowserModel) {
             final SingleLocationBrowserModel sModel = (SingleLocationBrowserModel) model;
             sModel.setChromosomeRange(sModel.getChromosomeRange());
@@ -317,7 +318,7 @@ public class TrackListController {
   }
 
   public void doScrollTrack(final boolean scrollLeft, final boolean shiftWholeRegion) {
-    execute(Commands.createScrollCommand(myBrowser.getBrowserModel(), scrollLeft, shiftWholeRegion));
+    execute(CommandsKt.scroll(myBrowser.getModel(), scrollLeft, shiftWholeRegion));
   }
 
   @SuppressWarnings("MethodOnlyUsedFromInnerClass")
@@ -325,10 +326,10 @@ public class TrackListController {
     if (distancePx == 0) {
       return;
     }
-    final Range region = myBrowser.getBrowserModel().getRange();
+    final Range region = myBrowser.getModel().getRange();
     final int regionLength = region.length();
     final long dragDistanceNucleotides = distancePx * regionLength / myTrackListComponent.getWidth();
-    execute(Commands.createScrollCommand(myBrowser.getBrowserModel(), (int) dragDistanceNucleotides));
+    execute(CommandsKt.scrollBy(myBrowser.getModel(), (int) dragDistanceNucleotides));
   }
 
 
@@ -336,7 +337,7 @@ public class TrackListController {
   private void doZoom(final int wheelRotation) {
     final boolean zoomIn = OS.isMacOSX() ? wheelRotation >= 0 : wheelRotation < 0;
     final double zoomScale = zoomIn ? 1 + ZOOM_MOUSE_PERCENT : 1 / (1 + ZOOM_MOUSE_PERCENT);
-    execute(Commands.createZoomGenomeRegionCommand(myBrowser.getBrowserModel(), zoomScale));
+    execute(CommandsKt.zoom(myBrowser.getModel(), zoomScale));
   }
 
 
@@ -347,7 +348,7 @@ public class TrackListController {
     } else {
       // Just zoom
       final double scale = zoomIn ? 2.0 : 0.5;
-      execute(Commands.createZoomGenomeRegionCommand(myBrowser.getBrowserModel(), scale));
+      execute(CommandsKt.zoom(myBrowser.getModel(), scale));
     }
   }
 
@@ -358,14 +359,14 @@ public class TrackListController {
       assert mySelectionRange.getFirst() != null;
       assert mySelectionRange.getSecond() != null;
 
-      final Range range = myBrowser.getBrowserModel().getRange();
-      final int selectionStartOffset = TrackUIUtil.screenToGenome(mySelectionRange.getFirst(), width, range);
-      final int selectionEndOffset = TrackUIUtil.screenToGenome(mySelectionRange.getSecond(), width, range);
+      final Range range = myBrowser.getModel().getRange();
+      final int selectionStartOffset = screenToGenome(mySelectionRange.getFirst(), width, range);
+      final int selectionEndOffset = screenToGenome(mySelectionRange.getSecond(), width, range);
 
       // Clear selection
       mySelectionRange = null;
 
-      execute(Commands.createZoomToRegionCommand(myBrowser.getBrowserModel(), selectionStartOffset, selectionEndOffset - selectionStartOffset));
+      execute(CommandsKt.zoomAt(myBrowser.getModel(), selectionStartOffset, selectionEndOffset));
     }
   }
 

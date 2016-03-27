@@ -1,6 +1,7 @@
 package org.jetbrains.bio.browser.util
 
 import org.apache.commons.math3.util.Precision
+import org.jetbrains.bio.browser.genomeToScreen
 import org.jetbrains.bio.browser.model.MultipleLocationsBrowserModel
 import org.jetbrains.bio.browser.tracks.TrackView
 import org.jetbrains.bio.ext.asOffset
@@ -11,7 +12,6 @@ import sun.font.FontDesignMetrics
 import java.awt.*
 import java.text.DecimalFormat
 import java.util.*
-import java.util.stream.IntStream
 import javax.swing.JLabel
 
 /**
@@ -109,38 +109,15 @@ object TrackUIUtil {
      * Draws string on the screen on the white background, useful when printing over track
      */
     public @JvmStatic fun drawString(g: Graphics, string: String, x: Int, y: Int, color: Color) {
-        g.color = Color.WHITE
-
         val bounds = g.fontMetrics.getStringBounds(string, g)
         val width = bounds.height.toInt()
         val height = bounds.width.toInt()
 
+        g.color = Color.WHITE
         g.fillRect(x - 1, y - width + 1, height + 2, width + 2)
         g.color = color
         g.drawString(string, x, y)
     }
-
-
-    /**
-     * Returns screen X coordinate for current visible range by chromosome nucleotide offset for given track view width
-     * @param offset     Chromosome offset
-     * @param trackWidth Track view width
-     * @param range
-     * @return screen x coordinate
-     */
-    public @JvmStatic fun genomeToScreen(offset: Int, trackWidth: Int, range: Range): Int
-            = ((offset - range.startOffset).toLong() * trackWidth / range.length()).toInt()
-
-    /**
-     * Returns chromosome nucleotide offset for current visible range at given point (screen x coordinate) for given track view width
-     * @param screenX    Screen x coordinate
-     * @param trackWidth Track view width
-     * @param range
-     * @return chromosome offset
-     */
-    public @JvmStatic fun screenToGenome(screenX: Int, trackWidth: Long, range: Range): Int
-            = ((screenX.toLong()) * range.length() / trackWidth + range.startOffset).toInt()
-
 
     public @JvmStatic fun locationsWidths(namedLocations: List<LocationAware>,
                                           screenWidth: Int): List<Int> {
@@ -162,10 +139,11 @@ object TrackUIUtil {
     }
 
     public @JvmStatic fun drawGrid(g: Graphics, range: Range, width: Int, height: Int) {
-        val step = stepSize(range.length())
+        val stepSize = stepSize(range.length())
         g.color = Color.LIGHT_GRAY
-        IntStream.rangeClosed(range.startOffset / step, range.endOffset / step).forEach() { i ->
-            val x = genomeToScreen(i * step, width, range)
+
+        for (offset in range.startOffset..range.endOffset step stepSize) {
+            val x = genomeToScreen(offset, width, range)
             g.drawLine(x, 0, x, height)
         }
     }
@@ -287,21 +265,10 @@ object TrackUIUtil {
         // scale size
         val text = "${stepSize.asOffset()} of ${regionLength.asOffset()} bp"
         g.drawString(text, leftMargin, scaleLineY - 4)
-
-        val bpInPixel = regionLength / width
-        if (bpInPixel > 1) {
-            val scaleTextWidth = g.fontMetrics.stringWidth(text)
-
-            g.color = Color.GRAY
-            g.drawString("1 pixel ~ ${bpInPixel.asOffset()} bp",
-                    leftMargin + 15 + scaleTextWidth, scaleLineY - 4)
-        }
     }
 
     public @JvmStatic fun drawOffsets(g: Graphics, range: Range, width: Int) {
-        val step = stepSize(range.length())
-        val segmentStart = range.startOffset / step
-        val segmentEnd = range.endOffset / step
+        val stepSize = stepSize(range.length())
 
         g.color = Color.BLACK
 
@@ -309,29 +276,22 @@ object TrackUIUtil {
         val textBottomLineY = fontMetrics.height + 5
 
         var prevX = -10
-        var i = segmentStart
-        while (i <= segmentEnd) {
-            val segmentStartOffsetInGenome = i * step
-            val x = genomeToScreen(segmentStartOffsetInGenome, width, range)
-            if (x < 0) {
-                i += 1
-                continue
+        for (offset in range.startOffset..range.endOffset step stepSize) {
+            val x = genomeToScreen(offset, width, range)
+            // This is always the case unless 'genomeToScreen' is broken.
+            assert(x >= 0)
+
+            if (x - prevX <= 2) {
+                continue  // Drop overlaps. But why 2?
             }
 
-            // if marks doesn't overlap - draw them
-            // else skip
-            if (x - prevX <= 2) {
-                i += 1
-                continue
-            }
-            val label = segmentStartOffsetInGenome.asOffset()
+            val label = offset.asOffset()
             prevX = x + fontMetrics.stringWidth(label)
             if (prevX > width) {
-                // mark text out of screen bounds
-                break
+                break     // Out of screen bounds.
             }
+
             g.drawString(label, x + 1, textBottomLineY)
-            i += 1
         }
     }
 

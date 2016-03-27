@@ -20,7 +20,6 @@ abstract class BrowserModel(val genomeQuery: GenomeQuery, range: Range) {
 
     abstract val length: Int
 
-    abstract fun presentableName(): String
     abstract fun copy(): BrowserModel
 
     // XXX why synchronized?
@@ -31,19 +30,17 @@ abstract class BrowserModel(val genomeQuery: GenomeQuery, range: Range) {
         }
     }
 
-    fun addModelListener(listener: ModelListener) {
+    fun addListener(listener: ModelListener) {
         synchronized (modelListeners) {
             modelListeners.add(listener)
         }
     }
 
-    fun removeModelListener(listener: ModelListener) {
+    fun removeListener(listener: ModelListener) {
         synchronized (modelListeners) {
             modelListeners.remove(listener)
         }
     }
-
-    override fun toString() = presentableName()
 }
 
 interface ModelListener {

@@ -308,9 +308,9 @@ class BrowserAPITest : TestCase() {
         init()
         val map = HashMap<String, Array<String>>()
         BrowserAPI.request(session, browserName, browser, response, map, completion)
-        assertEquals("completion888:0-888", browser.browserModel.presentableName())
+        assertEquals("completion888:0-888", browser.model.toString())
         BrowserAPI.request(session, browserName, browser, response, map, completion.toUpperCase())
-        assertEquals("completion888:0-888", browser.browserModel.presentableName())
+        assertEquals("completion888:0-888", browser.model.toString())
     }
 
     fun testMultipleRequest() {
@@ -322,7 +322,7 @@ class BrowserAPITest : TestCase() {
         for (i in 1..3) {
             val r = "chr1:0-${i * 1000}"
             BrowserAPI.request(session, browserName, browser, response, map, r)
-            assertEquals(r, browser.browserModel.presentableName())
+            assertEquals(r, browser.model.toString())
             writer.toString()
             writer.append("\n")
         }
@@ -364,33 +364,33 @@ class BrowserAPITest : TestCase() {
     fun testScroll() {
         init()
         val map = HashMap<String, Array<String>>()
-        // Edge cases
+        // Edge cases: nowhere to scroll.
         BrowserAPI.request(session, browserName, browser, response, map, "scroll left")
-        assertEquals("chr1:0-8000000", browser.browserModel.presentableName())
+        assertEquals("chr1:0-10000000", browser.model.toString())
         BrowserAPI.request(session, browserName, browser, response, map, "scroll right")
-        assertEquals("chr1:1600000-9600000", browser.browserModel.presentableName())
+        assertEquals("chr1:0-10000000", browser.model.toString())
 
         BrowserAPI.request(session, browserName, browser, response, map, "chr1:20000-30000")
         BrowserAPI.request(session, browserName, browser, response, map, "scroll left")
-        assertEquals("chr1:18000-28000", browser.browserModel.presentableName())
+        assertEquals("chr1:18000-28000", browser.model.toString())
         BrowserAPI.request(session, browserName, browser, response, map, "scroll right")
-        assertEquals("chr1:20000-30000", browser.browserModel.presentableName())
+        assertEquals("chr1:20000-30000", browser.model.toString())
     }
 
     fun testZoom() {
         init()
         val map = HashMap<String, Array<String>>()
-        // Edge cases
+        // Edge case: zoomed out to max.
         BrowserAPI.request(session, browserName, browser, response, map, "zoom out")
-        assertEquals("chr1:0-10000000", browser.browserModel.presentableName())
+        assertEquals("chr1:0-10000000", browser.model.toString())
 
         BrowserAPI.request(session, browserName, browser, response, map, "zoom in")
-        assertEquals("chr1:2500000-7500000", browser.browserModel.presentableName())
+        assertEquals("chr1:2500000-7500000", browser.model.toString())
         BrowserAPI.request(session, browserName, browser, response, map, "zoom out")
-        assertEquals("chr1:0-10000000", browser.browserModel.presentableName())
+        assertEquals("chr1:0-10000000", browser.model.toString())
 
         BrowserAPI.request(session, browserName, browser, response, map, "zoom 10 90")
-        assertEquals("chr1:1000000-9000000", browser.browserModel.presentableName())
+        assertEquals("chr1:1000000-9000000", browser.model.toString())
     }
 
     fun testDragNDrop() {
@@ -399,7 +399,7 @@ class BrowserAPITest : TestCase() {
         // Edge cases
         BrowserAPI.request(session, browserName, browser, response, map, "chr1:20000-30000")
         BrowserAPI.request(session, browserName, browser, response, map, "dragndrop 25000 35000")
-        assertEquals("chr1:25000-35000", browser.browserModel.presentableName())
+        assertEquals("chr1:25000-35000", browser.model.toString())
     }
 
 

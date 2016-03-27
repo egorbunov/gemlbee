@@ -19,7 +19,7 @@ class AbstractGenomeBrowserTest {
         val gq = GenomeQuery("to1")
         val browser = HeadlessGenomeBrowser(SingleLocationBrowserModel(gq),
                                             emptyList(), emptyMap())
-        assertFalse(browser.browserModel is MultipleLocationsBrowserModel)
+        assertFalse(browser.model is MultipleLocationsBrowserModel)
         assertFalse(browser.handleMultipleLocationsModel("housekeeping"))
     }
 
@@ -33,9 +33,9 @@ class AbstractGenomeBrowserTest {
                 emptyList(),
                 mapOf("housekeeping" to { qg: GenomeQuery -> listOf(locRef) }))
         assertTrue(browser.handleMultipleLocationsModel("housekeeping"))
-        assertTrue(browser.browserModel is MultipleLocationsBrowserModel)
-        assertEquals(0, browser.browserModel.range.startOffset)
-        assertEquals(1000, browser.browserModel.range.endOffset)
+        assertTrue(browser.model is MultipleLocationsBrowserModel)
+        assertEquals(0, browser.model.range.startOffset)
+        assertEquals(1000, browser.model.range.endOffset)
         assertTrue(browser.handleMultipleLocationsModel("housekeeping"))
     }
 
@@ -49,10 +49,10 @@ class AbstractGenomeBrowserTest {
                 emptyList<TrackView>(),
                 mapOf("housekeeping" to { qg: GenomeQuery -> listOf(locRef) }))
         assertTrue(browser.handleMultipleLocationsModel("housekeeping"))
-        assertEquals(0, browser.browserModel.range.startOffset)
-        assertEquals(1000, browser.browserModel.range.endOffset)
+        assertEquals(0, browser.model.range.startOffset)
+        assertEquals(1000, browser.model.range.endOffset)
         assertTrue(browser.handleMultipleLocationsModel("housekeeping:100-200"))
-        assertEquals(100, browser.browserModel.range.startOffset)
-        assertEquals(200, browser.browserModel.range.endOffset)
+        assertEquals(100, browser.model.range.startOffset)
+        assertEquals(200, browser.model.range.endOffset)
     }
 }

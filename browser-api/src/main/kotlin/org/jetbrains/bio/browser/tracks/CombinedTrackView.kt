@@ -69,7 +69,7 @@ class CombinedTrackView(private val backGroundView: TrackView,
         val bgScales = backGroundView.computeScale(model, bgConf)
         bgConf[TrackView.TRACK_SCALE] = bgScales
 
-        val fgConf = conf.get(FG_CONFIG)
+        val fgConf = conf[FG_CONFIG]
         val fgScales = frontView.computeScale(model, fgConf)
         fgConf[TrackView.TRACK_SCALE] = fgScales
 
@@ -120,16 +120,16 @@ class CombinedTrackView(private val backGroundView: TrackView,
         frontView.drawLegend(g, width, height, false)
     }
 
-    override fun removeEventsListener(listener: TrackViewListener) {
-        super.removeEventsListener(listener)
-        backGroundView.removeEventsListener(listener)
-        frontView.removeEventsListener(listener)
+    override fun removeListener(listener: TrackViewListener) {
+        super.removeListener(listener)
+        backGroundView.removeListener(listener)
+        frontView.removeListener(listener)
     }
 
-    override fun addEventsListener(listener: TrackViewListener) {
-        super.addEventsListener(listener)
-        backGroundView.addEventsListener(listener)
-        frontView.addEventsListener(listener)
+    override fun addListener(listener: TrackViewListener) {
+        super.addListener(listener)
+        backGroundView.addListener(listener)
+        frontView.addListener(listener)
     }
 
 

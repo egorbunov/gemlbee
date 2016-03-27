@@ -1,6 +1,7 @@
 package org.jetbrains.bio.browser.tracks
 
 import org.jetbrains.bio.ScoredInterval
+import org.jetbrains.bio.browser.genomeToScreen
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.browser.util.TrackUIUtil
@@ -12,7 +13,7 @@ import java.nio.file.Path
 
 class TdfTrackView(val path: Path, val trackNumber: Int = 0) : TrackView(path.name) {
 
-    private val tdf = TdfFile.read(path)
+    private val tdf : TdfFile by lazy(LazyThreadSafetyMode.NONE) { TdfFile.read(path) }
 
     init {
         preferredHeight = 30
@@ -32,8 +33,8 @@ class TdfTrackView(val path: Path, val trackNumber: Int = 0) : TrackView(path.na
         g.color = Color.BLUE
         scores.forEach {
             val h = (it.score / max * height).toInt()
-            val startOffset = TrackUIUtil.genomeToScreen(it.start, width, range)
-            val endOffset = TrackUIUtil.genomeToScreen(it.end, width, range)
+            val startOffset = genomeToScreen(it.start, width, range)
+            val endOffset = genomeToScreen(it.end, width, range)
             if (endOffset == startOffset) {
                 // draw 3 x height: rectangle
                 g.fillRect(startOffset - 1, height - h, 3, height)

@@ -1,20 +1,18 @@
 package org.jetbrains.bio.browser.tracks
 
-import gnu.trove.list.TIntList
+import com.google.common.annotations.VisibleForTesting
 import gnu.trove.list.array.TIntArrayList
+import org.jetbrains.bio.browser.genomeToScreen
 import org.jetbrains.bio.browser.model.BrowserModel
 import org.jetbrains.bio.browser.model.GeneLocRef
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.tracks.ExonicBlock.*
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.browser.util.TrackUIUtil
-import org.jetbrains.bio.browser.util.TrackUIUtil.genomeToScreen
 import org.jetbrains.bio.genome.*
 import org.jetbrains.bio.genome.query.GenomeQuery
 import java.awt.Color
 import java.awt.Graphics
-import java.awt.Graphics2D
-import java.awt.RenderingHints
 import java.util.*
 
 /**
@@ -26,15 +24,15 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
     }
 
     override fun preprocess(genomeQuery: GenomeQuery) {
-        val build = genomeQuery.build
-
-        val url = Mart.Companion.forBuild(build).host
+        val url = Mart.forBuild(genomeQuery.build).host
         title = "${GeneClass.ALL.description} ($url)"
     }
 
     override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
         val trackHeight = conf[TrackView.HEIGHT]
         val trackWidth = conf[TrackView.WIDTH]
+
+        g.font = TrackUIUtil.SMALL_FONT
 
         // Create drawing lines - as much as track height allow
         val linesCount = trackHeight / LINE_HEIGHT_PX
@@ -44,12 +42,9 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
             return
         }
 
-        val chromosome = model.chromosome
-        val range = model.range
-
         // Genes to show
-        val genes = chromosome.genes.asSequence()
-                .filter { it.location.toRange() intersects range }
+        val genes = model.chromosome.genes
+                .filter { it.location.toRange() intersects model.range }
                 // for better layout so genes as ranges, i.e ignoring strand
                 .sortedWith(Comparator.comparing<Gene, Range> { it.location.toRange() })
                 .toList()
@@ -57,40 +52,35 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
         val metaInf = model.rangeMetaInf
         val selectedGene = if (metaInf is GeneLocRef) metaInf.gene else null
 
-        val geneLines = Array<TIntList>(linesCount) { TIntArrayList() };
+        val geneShelf = GeneShelf(linesCount)
         val elseLine = linesCount - 1
         val descriptionSecondLine = elseLine - 1
 
         for (gene in genes) {
-            // Gene label:
+            val (startOffset, endOffset) = gene.location.toRange() intersection model.range
+            val geneStartX = genomeToScreen(startOffset, trackWidth, model.range)
+            val geneEndX = genomeToScreen(endOffset, trackWidth, model.range)
+            if (geneEndX == geneStartX) {
+                continue
+            }
+
             val label = gene.symbol
-            val labelWidthPx = g.fontMetrics.stringWidth(label)
+            val labelWidth = if (genes.size < MAX_SHOWN_GENES_WITH_LABELS) {
+                g.fontMetrics.stringWidth(label)
+            } else {
+                0
+            }
 
-            val geneLoc = gene.location
-            val strand = geneLoc.strand
-
-            // If gene starts in invisible area - trunk it to visible one
-            val geneStartX = Math.max(0, genomeToScreen(geneLoc.startOffset, trackWidth, range))
-            val geneEndX = Math.min(trackWidth, genomeToScreen(geneLoc.endOffset, trackWidth, range))
-
-            // labeled gene preferred and less preferred starts
-            val (prefStartX, overlappingStartX)
-                    = labeledGenePrefStarts(geneStartX, geneEndX, labelWidthPx, strand)
-
-            val (line, labelLeftBoundX)
-                    = findSuitableLine(geneLines, geneStartX, prefStartX, overlappingStartX)
-
-            geneLines[line].add(geneEndX + strand.choose(0, labelWidthPx + LABEL_SPACER_PX)
-                    + LABEL_LEFT_SPACER_PX)
+            val (line, labelLeftBoundX) = geneShelf.put(gene, geneStartX, geneEndX, labelWidth)
 
             // If gene is selected we will write it's description in 2 last lines
             // so let's free it of other genes, they are grayed and not important
             if (selectedGene == null || line < descriptionSecondLine) {
-                drawGene(gene, isGeneIgnored(gene, selectedGene), geneStartX, geneEndX,
+                val ignored = selectedGene != null && gene !== selectedGene
+                drawGene(gene, ignored, geneStartX, geneEndX,
                          label, labelLeftBoundX, line, linesCount,
                          g, model, genes.size, trackWidth)
             }
-
         }
 
         // Draw gene description if
@@ -103,9 +93,26 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
         drawOthersLineSeparator(g, linesCount, trackWidth)
     }
 
-    /**
-     * Draws gene in given 'line'
-     */
+    private fun transcriptColor(gene: Gene, ignored: Boolean) = when {
+        ignored -> COLOR_GENE_IGNORED
+        gene.isCoding -> COLOR_CODING
+        else -> COLOR_NON_CODING
+    }
+
+    private fun getLineCenterY(line: Int) = line * LINE_HEIGHT_PX + LINE_HEIGHT_PX / 2
+
+    private fun drawOthersLineSeparator(g: Graphics, linesCount: Int, trackWidth: Int) {
+        // if more than one line, separate single-gene lines from "all other" line
+        if (linesCount > 1) {
+            g.color = Color.LIGHT_GRAY;
+            // dotted line
+            for (screenX in 0..trackWidth step 9) {
+                val lastLineY = (linesCount - 1) * LINE_HEIGHT_PX;
+                g.drawLine(screenX, lastLineY, screenX + 3, lastLineY);
+            }
+        }
+    }
+
     private fun drawGene(gene: Gene,
                          ignored: Boolean,
                          geneStartX: Int, geneEndX: Int,
@@ -113,26 +120,31 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
                          line: Int, linesCount: Int,
                          g: Graphics, model: SingleLocationBrowserModel,
                          genesCount: Int, trackWidth: Int) {
-
         val strand = gene.strand
 
-        // Gene transcript
         val color = transcriptColor(gene, ignored)
-        drawGeneTranscript(g, color, geneStartX, geneEndX, strand, line)
+        if (geneEndX - geneStartX <= 1) {
+            g.color = color
+            val height = CODING_EXON_CDS_HEIGHT
+            g.fillRect(geneStartX, getLineCenterY(line) - height / 2, 1, height)
+        } else {
+            // Gene transcript
+            drawGeneTranscript(g, color, geneStartX, geneEndX, strand, line)
 
-        // Exons/CDS/UTR etc
-        drawGeneRegions(g, gene, ignored, line, model, trackWidth);
+            // Exons/CDS/UTR etc
+            drawGeneRegions(g, gene, ignored, line, model, trackWidth);
+        }
 
         // Gene label
-        val labelWidth = g.getFontMetrics(TrackUIUtil.SMALL_FONT).stringWidth(label)
+        val labelWidth = g.fontMetrics.stringWidth(label)
         if (genesCount < MAX_SHOWN_GENES_WITH_LABELS) {
             val labelX = determineLabelStartX(strand, geneStartX, geneEndX,
-                    labelWidth, labelLeftBoundX, trackWidth)
+                                              labelWidth, labelLeftBoundX, trackWidth)
             if (labelX != -1) {
                 drawGeneLabel(g, label,
-                        if (ignored) COLOR_LABEL_IGNORED else color,
-                        labelX, line,
-                        determineLabelBgDim(labelX, labelWidth, strand, geneStartX, geneEndX))
+                              if (ignored) COLOR_LABEL_IGNORED else color,
+                              labelX, line,
+                              determineLabelBgDim(labelX, labelWidth, strand, geneStartX, geneEndX))
             }
 
             if (genesCount == 1) {
@@ -141,10 +153,26 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
         }
     }
 
-    private fun transcriptColor(gene: Gene, ignored: Boolean) = when {
-        ignored -> COLOR_GENE_IGNORED
-        gene.isCoding -> COLOR_CODING
-        else -> COLOR_NON_CODING
+    private fun drawGeneDescription(g: Graphics, linesCount: Int,
+                                    gene: Gene,
+                                    trackWidth: Int) {
+
+        val desc = "${gene.description} (e:${gene.exons.size}, i:${gene.introns.size})"
+        val names = gene.names.values.filter { it.isNotEmpty() }.joinToString { it };
+
+        val fm = g.fontMetrics
+        if (trackWidth >= Math.max(fm.stringWidth(names), fm.stringWidth(desc))) {
+            //Full gene desc:
+            drawGeneLabel(g, desc, Color.GRAY, 0, linesCount - 2, true);
+            drawGeneLabel(g, names, Color.GRAY, 0, linesCount - 1, true);
+        } else {
+            // Short desc
+            val geneId = gene.getName(GeneAliasType.ENSEMBL_ID);
+            if (trackWidth >= fm.stringWidth(geneId)) {
+                drawGeneLabel(g, geneId, Color.GRAY, 0, linesCount - 1, true);
+            }
+            // else: no place for additional info
+        }
     }
 
     private fun drawGeneTranscript(g: Graphics, color: Color,
@@ -165,70 +193,6 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
         }
     }
 
-    private fun getLineCenterY(line: Int) = line * LINE_HEIGHT_PX + LINE_HEIGHT_PX / 2
-
-    private fun drawRect(g: Graphics,
-                         x: Int, y: Int, width: Int, height: Int,
-                         trackWidth: Int) {
-        // accepts rect large that track X axis bounds
-        var xFixed = x;
-        var widthFixed = width;
-
-        if (xFixed < 0) {
-            widthFixed += xFixed;
-            xFixed = 0;
-        }
-        if (widthFixed > trackWidth) {
-            widthFixed = trackWidth;
-        }
-
-        if (widthFixed == 1) {
-            g.drawLine(xFixed, y, xFixed, y + height);
-        } else {
-            g.fillRect(xFixed, y, widthFixed, height);
-        }
-    }
-
-
-    private fun drawOthersLineSeparator(g: Graphics, linesCount: Int, trackWidth: Int) {
-        // if more than one line, separate single-gene lines from "all other" line
-        if (linesCount > 1) {
-            g.color = Color.LIGHT_GRAY;
-            // dotted line
-            for (screenX in 0..trackWidth step 9) {
-                val lastLineY = (linesCount - 1) * LINE_HEIGHT_PX;
-                g.drawLine(screenX, lastLineY, screenX + 3, lastLineY);
-            }
-        }
-    }
-
-    private fun isGeneIgnored(gene: Gene, preSelectedGene: Gene?)
-            = preSelectedGene != null && preSelectedGene !== gene
-
-    private fun drawGeneDescription(g: Graphics, linesCount: Int,
-                                    gene: Gene,
-                                    trackWidth: Int) {
-
-        val desc = "${gene.description} (e:${gene.exons.size}, i:${gene.introns.size})"
-        val names = gene.names.values.filter { it.isNotEmpty() }.joinToString { it };
-
-        val fm = g.getFontMetrics(TrackUIUtil.SMALL_FONT);
-        g.font = TrackUIUtil.SMALL_FONT
-        if (trackWidth >= Math.max(fm.stringWidth(names), fm.stringWidth(desc))) {
-            //Full gene desc:
-            drawGeneLabel(g, desc, Color.GRAY, 0, linesCount - 2, true);
-            drawGeneLabel(g, names, Color.GRAY, 0, linesCount - 1, true);
-        } else {
-            // Short desc
-            val geneId = gene.getName(GeneAliasType.ENSEMBL_ID);
-            if (trackWidth >= fm.stringWidth(geneId)) {
-                drawGeneLabel(g, geneId, Color.GRAY, 0, linesCount - 1, true);
-            }
-            // else: no place for additional info
-        }
-
-    }
-
     private fun drawGeneLabel(g: Graphics, label: String, color: Color,
                               x: Int, line: Int,
                               dimBG: Boolean) {
@@ -241,9 +205,7 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
         }
 
         g.color = color;
-        g.font = TrackUIUtil.SMALL_FONT
-        (g as Graphics2D).setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
-        g.drawString(label, x, centerY + fm.descent + 2);
+        g.drawString(label, x, centerY + fm.descent + 1);
     }
 
     private fun drawGeneRegions(g: Graphics,
@@ -251,20 +213,11 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
                                 line: Int,
                                 model: BrowserModel, trackWidth: Int) {
 
-        // Paint exons
-        val visibleRange = model.range
-        val visibleExons = gene.exons.filter { visibleRange.intersects(it.toRange()) }
+        val visibleExons = gene.exons.filter { it.toRange() intersects model.range }
 
         val centerY = getLineCenterY(line);
 
-        if (!gene.isCoding) {
-            // just draw as is
-            g.color = if (ignored) COLOR_LOCUS_IGNORED else COLOR_NON_CODING_EXON
-            for (exonLocation in visibleExons) {
-                drawRange(g, centerY, NON_CODING_EXON_HEIGHT, exonLocation.toRange(), model, trackWidth)
-            }
-        } else {
-
+        if (gene.isCoding) {
             val cds = gene.cds!!
 
             // draw CDS
@@ -282,11 +235,16 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
                         drawRange(g, centerY, CODING_EXON_UTR_HEIGHT, range, model, trackWidth)
                     }
                     CDS_EXON -> {
-
                         drawRange(g, centerY, CODING_EXON_CDS_HEIGHT, range, model, trackWidth)
                     }
                     else -> check(false) { "Unsupported annotation $block for $range" }
                 }
+            }
+        } else {
+            // just draw as is
+            g.color = if (ignored) COLOR_LOCUS_IGNORED else COLOR_NON_CODING_EXON
+            for (exon in visibleExons) {
+                drawRange(g, centerY, NON_CODING_EXON_HEIGHT, exon.toRange(), model, trackWidth)
             }
         }
     }
@@ -295,33 +253,31 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
                           centerY: Int, rectHeight: Int,
                           range: Range, model: BrowserModel,
                           trackWidth: Int) {
+        val intersection = range intersection model.range
+        if (intersection.isNotEmpty()) {
+            val (startOffset, endOffset) = intersection
+            val startX = genomeToScreen(startOffset, trackWidth, model.range)
+            val endX = genomeToScreen(endOffset, trackWidth, model.range)
 
-        if (range.isNotEmpty()) {
-            val startX = genomeToScreen(range.startOffset, trackWidth, model.range)
-            val endX = genomeToScreen(range.endOffset, trackWidth, model.range)
-
-            drawRect(g,
-                    startX, centerY - rectHeight / 2,
-                    Math.max(1, endX - startX), rectHeight,
-                    trackWidth)
+            g.fillRect(startX, centerY - rectHeight / 2,
+                       Math.max(1, endX - startX), rectHeight)
         }
     }
 
-
     override fun drawLegend(g: Graphics, width: Int, height: Int, drawInBG: Boolean) {
         TrackUIUtil.drawBoxedLegend(g, width, height, drawInBG,
-                COLOR_CODING to "coding",
-                COLOR_NON_CODING to "non coding",
-                COLOR_CDS_PLUS to "+ CDS",
-                COLOR_CDS_MINUS to "- CDS")
+                                    COLOR_CODING to "coding",
+                                    COLOR_NON_CODING to "non coding",
+                                    COLOR_CDS_PLUS to "+ CDS",
+                                    COLOR_CDS_MINUS to "- CDS")
     }
 
     companion object {
         // Genes lines count, this tuning designed for headless mode
         private val LINES_PREFERRED_COUNT = 14
         private val LINE_HEIGHT_PX = 15
-        private val LABEL_SPACER_PX = 2
-        private val LABEL_LEFT_SPACER_PX = 5 + LABEL_SPACER_PX
+        internal val LABEL_SPACER_PX = 2
+        internal val LABEL_LEFT_SPACER_PX = 5 + LABEL_SPACER_PX
         private val NON_CODING_EXON_HEIGHT = 6
         private val CODING_EXON_CDS_HEIGHT = 12
         private val CODING_EXON_UTR_HEIGHT = 6
@@ -339,75 +295,6 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
         private val COLOR_LABEL_IGNORED = Color(152, 152, 152)
 
         private val MAX_SHOWN_GENES_WITH_LABELS = 1000
-
-        /**
-         * For each label mode - available line index and 1st rightmost free offset null if no info
-         */
-        fun findSuitableLine(geneLines: Array<TIntList>,
-                             geneStartX: Int,
-                             genePrefStartX: Int,
-                             geneOverlappedLabelStartX: Int): Pair<Int, Int?> {
-
-            // by default: last line
-            val defaultLine = geneLines.size - 1;
-
-            // Find first max suitable line among all line except last one
-            // last line is for all genes with not enough space
-
-            // prefLabelStart: 'true' -> best, 'false' -> overlapping label, 'null' -> no label (worst)
-            var prefLabelStart: Boolean? = null;
-            var bestLine = defaultLine;
-            var labelLeftBoundX: Int? = null;
-
-            for (line in 0..defaultLine - 1) {
-                val genEndXs = geneLines[line];
-
-                // Genes are sorted by start & end, so for next gene
-                // it is enough to compare it with latest gene at line
-                val lastGeneEndX = when {
-                    genEndXs.isEmpty -> 0
-                    else -> genEndXs[genEndXs.size() - 1];
-                }
-
-                // preferred:
-                if (lastGeneEndX <= genePrefStartX) {
-                    bestLine = line
-                    labelLeftBoundX = lastGeneEndX;
-
-                    // if preferred found => OK, stop searching
-                    break;
-                }
-
-                // try to find better candidate
-                if (prefLabelStart == null) {
-                    // with some label
-                    if (lastGeneEndX <= geneOverlappedLabelStartX) {
-                        prefLabelStart = false;
-                        bestLine = line;
-                        labelLeftBoundX = lastGeneEndX;
-                    }
-
-                    // or at least define line
-                    if (bestLine == defaultLine && lastGeneEndX <= geneStartX) {
-                        bestLine = line
-                    }
-                }
-            }
-            return bestLine to labelLeftBoundX;
-        }
-
-        fun labeledGenePrefStarts(geneStartX: Int, geneEndX: Int, geneNameWidthPx: Int,
-                                  strand: Strand): Pair<Int, Int> {
-            // Preferred label start '+' before gene, '-' after gene
-            // Here gene start, not label start:
-            val prefStartX = geneStartX - strand.choose(geneNameWidthPx, 0)
-
-            // Less preferred start: overlaps gene name on plus strand (ignored on minus)
-            val overlappingStartX = strand.choose(Math.min(geneStartX, geneEndX - geneNameWidthPx),
-                                                  geneStartX)
-
-            return prefStartX to overlappingStartX
-        }
 
         fun determineLabelStartX(strand: Strand, geneStartX: Int, geneEndX: Int,
                                  labelWidthPx: Int,
@@ -437,17 +324,96 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
     }
 }
 
+/**
+ * A helper class for laying out genes or a shelf.
+ *
+ * Example layout for `size = 2`
+ *
+ *    |012345678901234567890|
+ *    -----------------------
+ *       geneA  geneB          6, 13
+ *    -----------------------
+ *         geneC               8
+ *    -----------------------
+ */
+@VisibleForTesting
+internal class GeneShelf(size: Int) {
+    /** Shelves aka arrays of gene end coordinates. */
+    private val lines = Array(size, ::TIntArrayList)
+
+    fun put(gene: Gene, startX: Int, endX: Int, labelWidth: Int): IndexedValue<Int?> {
+        val strand = gene.strand
+
+        // Preferred label start '+' before gene, '-' after gene
+        // Here gene start, not label start:
+        val prefStartX = startX - strand.choose(labelWidth, 0)
+
+        // Alternative start: overlaps gene name on plus strand (ignored on minus)
+        val overlappingStartX = strand.choose(Math.min(startX, endX - labelWidth),
+                                              startX)
+        val match = findSuitableLine(prefStartX, overlappingStartX)
+
+        add(match.index, endX
+                         + strand.choose(0, labelWidth + GenesTrackView.LABEL_SPACER_PX)
+                         + GenesTrackView.LABEL_LEFT_SPACER_PX)
+
+        return match
+    }
+
+    internal fun add(line: Int, endX: Int) {
+        lines[line].add(endX)
+    }
+
+    /**
+     * Find the best line matching the given gene coordinates.
+     *
+     * @param prefStartX starting coordinate of the gene along with
+     *                   the label.
+     * @param overlappingStartX same as [prefStartX] but allows the
+     *                          label to overlap gene body.
+     *
+     * @return best line index and an X coordinate on that line.
+     *         If all lines are occupied, the coordinate is `null`.
+     */
+    internal fun findSuitableLine(prefStartX: Int, overlappingStartX: Int): IndexedValue<Int?> {
+        val defaultLine = lines.size - 1
+        var bestLine = defaultLine
+        var availableX: Int? = null
+        for (line in 0 until defaultLine) {
+            val lastX = lines[line].last() ?: 0
+
+            // Case 1: line can accommodate both the gene and the label.
+            if (lastX <= prefStartX) {
+                bestLine = line
+                availableX = lastX
+                break
+            }
+
+            // Case 2: line can accommodate the gene only when the label
+            //         overlaps gene body.
+            if (lastX <= overlappingStartX && line < bestLine) {
+                bestLine = line
+                availableX = lastX
+            }
+        }
+
+        return IndexedValue(bestLine, availableX)
+    }
+
+    private fun TIntArrayList.last(): Int? {
+        return if (isEmpty) null else getQuick(size() - 1)
+    }
+}
 
 fun annotate(cds: Location, exons: List<Location>): List<Pair<ExonicBlock, Range>> {
     if (cds.length() == 0 || exons.isEmpty()) {
-        //TODO NonCoding genes support
-        return Collections.emptyList();
+        return emptyList()
     }
 
     val strand = cds.strand;
-    val (cdsStart, cdsEnd) = cds;
+    val (cdsStart, cdsEnd) = cds
 
-    val blocks = ArrayList<Pair<ExonicBlock, Range>>();
+    val blocks = ArrayList<Pair<ExonicBlock, Range>>()
 
     // Left/right on screen, doesn't depend on gene strand
     for (exon in exons) {
@@ -493,7 +459,7 @@ fun annotate(cds: Location, exons: List<Location>): List<Pair<ExonicBlock, Range
         }
     }
 
-    return blocks;
+    return blocks
 }
 
 /**

@@ -36,6 +36,15 @@ data class Range(
         return other.endOffset > startOffset && endOffset > other.startOffset
     }
 
+    infix fun intersection(other: Range): Range {
+        return if (this intersects other) {
+            Range(Math.max(startOffset, other.startOffset),
+                  Math.min(endOffset, other.endOffset))
+        } else {
+            EMPTY
+        }
+    }
+
     fun on(chromosome: Chromosome): ChromosomeRange {
         return ChromosomeRange(startOffset, endOffset, chromosome)
     }
@@ -66,6 +75,9 @@ data class Range(
             .result()
 
     companion object {
+        /** An empty range. */
+        val EMPTY = Range(0, 0)
+
         /**
          * A type adapter enforcing a more compact encoding for ranges.
          *

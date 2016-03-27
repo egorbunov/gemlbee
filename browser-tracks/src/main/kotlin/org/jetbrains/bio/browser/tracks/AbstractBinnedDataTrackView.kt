@@ -1,11 +1,8 @@
 package org.jetbrains.bio.browser.tracks
 
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.bio.big.*
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
-import org.jetbrains.bio.browser.util.Key
-import org.jetbrains.bio.browser.util.Listener
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.ext.*
 import org.jetbrains.bio.genome.Chromosome
@@ -23,6 +20,7 @@ import java.util.stream.Collectors
 import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JOptionPane
+import kotlin.properties.Delegates.observable
 
 /**
  * @author Roman.Chernyatchik
@@ -33,20 +31,8 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
         title: String,
         protected val binSizes: IntArray = intArrayOf(binSize)) : BigWigTrackView(lineType, title) {
 
-    protected val BIN_SIZE: Key<Int> = Key("BIN_SIZE")
-
-    private val LOG = Logger.getLogger(AbstractBinnedDataTrackView::class.java)
-
-    init {
-        // Properties
-        uiOpts.init(BIN_SIZE, binSize)
-
-        // Repaint listener
-        uiOpts.addListener(object : Listener {
-            override fun valueChanged(key: Key<*>, value: Any?) {
-                if (key == BIN_SIZE) fireRepaintRequired()
-            }
-        })
+    protected var binSize: Int by observable(binSize) { _prop, old, new ->
+        fireRepaintRequired()
     }
 
     protected abstract fun fileName(layer: Int, strand: Strand, binSize: Int, gq: GenomeQuery): String
@@ -58,7 +44,7 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
 
     override fun getDataPath(layer: Int, strand: Strand, model: SingleLocationBrowserModel,
                              conf: Storage)
-            = getDataPath(layer, strand, uiOpts[BIN_SIZE], model.genomeQuery)
+            = getDataPath(layer, strand, binSize, model.genomeQuery)
 
     private fun getDataPath(layer: Int, strand: Strand, binSize: Int, gq: GenomeQuery): Path {
         return Configuration.cachePath / "browser" / fileName(layer, strand, binSize, gq)
@@ -67,7 +53,7 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
     override fun preprocess(genomeQuery: GenomeQuery) {
-        LOG.time(level = Level.DEBUG, message = "Browser preprocess data for: $title") {
+        LOG.time(message = "Browser preprocess data for: $title") {
             val executor = Executors.newWorkStealingPool(Runtime.getRuntime().availableProcessors())
             val tasks = ArrayList<Callable<*>>()
             binSizes.forEach { binSize ->
@@ -125,12 +111,12 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
 
     override fun renderer(layer: Int, model: SingleLocationBrowserModel,
                           conf: Storage, uiOptions: Storage): BinnedRenderer?
-            = BinnedRenderer(uiOptions[BIN_SIZE])
+            = BinnedRenderer(binSize)
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    protected override fun addTrackControls(): List<Pair<String, JComponent>> {
+    override fun addTrackControls(): List<Pair<String, JComponent>> {
         val superControls = super.addTrackControls()
         return when {
             binSizes.size < 2 -> superControls
@@ -148,7 +134,7 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
         val cbItems = binSizes.map { it.toLong().asOffset() }.toTypedArray()
         val comboBox = JComboBox(cbItems)
         comboBox.alignmentX = Component.LEFT_ALIGNMENT
-        comboBox.selectedItem = uiOpts[BIN_SIZE].asOffset()
+        comboBox.selectedItem = binSize.asOffset()
 
         comboBox.isEditable = false // no sense
         comboBox.preferredSize = Dimension(150, comboBox.preferredSize.height)
@@ -157,9 +143,9 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
             val selectedItem = comboBox.selectedItem.toString()
                     .replace(".", "").replace(",", "").replace("_", "").replace(" ", "")
 
-            val binSize: Int
+            val selectedBinSize: Int
             try {
-                binSize = Integer.parseInt(selectedItem)
+                selectedBinSize = selectedItem.toInt()
             } catch (ex: NumberFormatException) {
                 JOptionPane.showMessageDialog(comboBox,
                         "Bin size isn't integer number: $selectedItem",
@@ -167,10 +153,14 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
                 return@addActionListener
             }
 
-            uiOpts[BIN_SIZE] = binSize
+            binSize = selectedBinSize
 
         }
         return "Bin size:".to(comboBox)
+    }
+
+    companion object {
+        private val LOG = Logger.getLogger(AbstractBinnedDataTrackView::class.java)
     }
 }
 
