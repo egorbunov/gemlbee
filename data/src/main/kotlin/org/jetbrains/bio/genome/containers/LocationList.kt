@@ -3,7 +3,6 @@ package org.jetbrains.bio.genome.containers
 import com.google.common.collect.Iterables
 import com.google.common.collect.Lists
 import org.jetbrains.bio.genome.*
-import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.jetbrains.bio.io.BedFormat
 import java.io.IOException

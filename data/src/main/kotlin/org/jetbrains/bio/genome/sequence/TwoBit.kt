@@ -72,7 +72,7 @@ class TwoBitSequence(
 
     private fun inNBlock(index: Int, block: Int): Boolean {
         return block >= 0 && block < nBlockStarts.size &&
-                index - nBlockStarts[block] < nBlockSizes[block]
+               index - nBlockStarts[block] < nBlockSizes[block]
     }
 
     private fun getByte(index: Int): Byte {
@@ -123,9 +123,9 @@ class TwoBitSequence(
         else -> {
             val tbs = other as TwoBitSequence
             length == tbs.length &&
-                    Arrays.equals(nBlockSizes, tbs.nBlockSizes) &&
-                    Arrays.equals(nBlockStarts, tbs.nBlockStarts) &&
-                    Arrays.equals(packedDna, tbs.packedDna)
+            Arrays.equals(nBlockSizes, tbs.nBlockSizes) &&
+            Arrays.equals(nBlockStarts, tbs.nBlockStarts) &&
+            Arrays.equals(packedDna, tbs.packedDna)
         }
     }
 
@@ -208,7 +208,7 @@ class TwoBitSequence(
             }
 
             return TwoBitSequence(dnaSize, nBlockStarts.toArray(), nBlockSizes.toArray(),
-                    packedDna.toArray())
+                                  packedDna.toArray())
         }
     }
 }
@@ -279,9 +279,9 @@ object TwoBitReader {
      * Reads a mapping from sequence names to offsets in the 2bit file.
      */
     internal fun getIndex(buf: ByteBuffer): TObjectIntMap<String> {
-        val version = buf.getInt()
-        val sequenceCount = buf.getInt()
-        val reserved = buf.getInt()
+        val version = buf.int
+        val sequenceCount = buf.int
+        val reserved = buf.int
 
         check(reserved == 0) { "invalid reserved value: $reserved" }
         check(version == 0) { "unexpected version: $version" }
@@ -291,7 +291,7 @@ object TwoBitReader {
         for (i in 0..sequenceCount - 1) {
             val chunk = ByteArray(buf.get().toInt())
             buf.get(chunk)
-            index.put(String(chunk), buf.getInt())
+            index.put(String(chunk), buf.int)
         }
 
         return index
@@ -310,7 +310,7 @@ object TwoBitReader {
         return FileChannel.open(path).use { fc ->
             val buf = fc.map(FileChannel.MapMode.READ_ONLY, 0, path.size)
             buf.order(ByteOrder.nativeOrder())
-            val nativeMagic = buf.getInt()
+            val nativeMagic = buf.int
             if (nativeMagic != MAGIC) {
                 val reversedMagic = java.lang.Integer.reverseBytes(nativeMagic)
                 check(reversedMagic == MAGIC) { "bad signature" }
@@ -353,7 +353,7 @@ object TwoBitReader {
             buf.position(buf.position() + packsCount * Integer.BYTES)
             val pack = ByteArray(Integer.BYTES)
             buf.get(pack, 0, IntMath.divide(leftover * TwoBitSequence.BITS_PER_NUCLEOTIDE,
-                    java.lang.Byte.SIZE, RoundingMode.CEILING))
+                                            java.lang.Byte.SIZE, RoundingMode.CEILING))
             packedDna[packsCount] = Ints.fromByteArray(pack)
         }
 

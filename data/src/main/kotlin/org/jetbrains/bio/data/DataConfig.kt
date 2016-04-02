@@ -14,43 +14,47 @@ import java.util.*
 class DataConfig(
         /**
          * Human-readable identifier of the configuration.
-         *
-         * Use `""` if you don't have a meaningful identifier.
+         * This id will be used as a folder name for experiments output.
          */
         val id: String,
         /** A genome query, which specifies genome build and chromosome restriction. */
         val genomeQuery: GenomeQuery,
         /** Configured tracks. */
         val tracks: LinkedHashMap<Pair<String, CellId>, Section>,
-        /** Points of interest */
-        val poi: POI = POI(listOf(POI.ALL))) {
+
+        /**
+         * Points of interest
+         * Additional config for [RawDataExperiment] and [PredicatesExperiment]
+         */
+        val poi: POI = POI(listOf(POI.ALL)),
+        /**
+         * Additional config for [RulesExperiment], etc.
+         */
+        val ruleMinSupport: Int = DataConfig.DEFAULT_RULE_MIN_SUPPORT,
+        val ruleMinConviction: Double = DataConfig.DEFAULT_RULE_MIN_CONVICTION,
+        val ruleMaxComplexity: Double = DataConfig.DEFAULT_RULE_MAX_COMPLEXITY,
+        val ruleTop: Int = DataConfig.DEFAULT_RULE_TOP,
+        val ruleOutput: Int = DataConfig.DEFAULT_RULE_OUTPUT) {
 
     /** Saves configuration in a YAML file. */
-    fun save(writer: Writer,
-             printComment: Boolean = true,
-             printId: Boolean = true,
-             printGenome: Boolean = true,
-             printPoi: Boolean = true,
-             printTracks: Boolean = true) {
-        if (printComment) {
-            writer.append("# This file was generated automatically.\n" +
-                    FORMAT.lines().map { "# $it" }.joinToString("\n") + "\n")
-        }
+    fun save(writer: Writer) {
+        writer.append("# This file was generated automatically.\n" +
+                FORMAT.lines().map { "# $it" }.joinToString("\n") + "\n")
         val proxy = Proxy()
         // Here we use the fact that YamlBean doesn't save default values.
-        if (printId) {
-            proxy.id = if (id.isEmpty()) null else id
-        }
-        if (printGenome) {
-            proxy.genome = genomeQuery.getShortNameWithChromosomes()
-        }
-        if (printTracks) {
-            proxy.tracks.putAll(tracks.wrap())
-        }
-        if (printPoi) {
-            // Once again Collections#SingletonList issue in `yamlbeans`
-            proxy.poi = poi.full(this).toMutableList()
-        }
+        proxy.id = id
+        proxy.genome = genomeQuery.getShortNameWithChromosomes()
+        proxy.tracks.putAll(tracks.wrap())
+
+        // Once again Collections#SingletonList issue in `yamlbeans`
+        proxy.poi = poi.list.toMutableList()
+
+        // Rules mining extra params
+        proxy.rule_min_support = ruleMinSupport
+        proxy.rule_max_complexity = ruleMaxComplexity
+        proxy.rule_min_conviction = ruleMinConviction
+        proxy.rule_top = ruleTop
+        proxy.rule_output = ruleOutput
 
         val yaml = YamlWriter(writer)
         with(yaml.config) {
@@ -105,6 +109,12 @@ class DataConfig(
 
     companion object {
 
+        val DEFAULT_RULE_MIN_SUPPORT: Int = 0
+        val DEFAULT_RULE_MIN_CONVICTION: Double = 0.0
+        val DEFAULT_RULE_MAX_COMPLEXITY: Double = Double.POSITIVE_INFINITY
+        val DEFAULT_RULE_TOP: Int = 1
+        val DEFAULT_RULE_OUTPUT: Int = 1
+
         val GENOME_DESCRIPTION = """Genome:
 See https://genome.ucsc.edu/FAQ/FAQreleases.html
 Examples:
@@ -125,6 +135,22 @@ Markup will be downloaded automatically if doesn't exist. Example:
 - *.bam for BS-Seq
 - *.fastq, *.fastq.gz file/folder for transcriptome"""
 
+
+        val RULE_MIN_SUPPORT_DESCRIPTION = """rule_min_support:
+If given limits min rule support of generated rules."""
+
+        val RULE_MAX_COMPLEXITY_DESCRIPTION = """rule_max_complexity:
+If given limits max complexity of generated rules."""
+
+        val RULE_MIN_CONVICTION_DESCRIPTION = """rule_min_conviction:
+If given limits min conviction of generated rules."""
+
+        val RULE_TOP_DESCRIPTION = """rule_top:
+If given configures rule mining algorithm precision, i.e. guaranteed top for each target."""
+
+        val RULE_OUT_DESCRIPTION = """rule_output:
+If given configures number of rules to output for each target."""
+
         val TRACKS_DESCRIPTION = """Tracks:
 Each condition is allowed to have multiple replicates. Replicates
 can be either implicitly labeled by their position within the
@@ -140,15 +166,6 @@ Without labels:
     - path/to/replicate/data
     - path/to/replicate/data"""
 
-        val POI_DESCRIPTION = """POI:
-POI = points of interest, you can use shortcut "all".
-
-poi:
-- all                   # All modifications x all regulatory loci + transcription
-- H3K4me3@all           # Modification at all regulatory loci
-- all@tss[-2000..2000]  # All modifications at given locus
-- meth@exons            # Methylation at given locus
-- transcription         # Transcription"""
 
         val FORMAT = """YAML configuration for biological data:
     id: <experiment id>
@@ -170,8 +187,19 @@ Supported data types:
 * ${DataType.mapper.keys.sorted().joinToString(", ")}
 
 $SUPPORTED_FILE_FORMATS
+
 ---
-$POI_DESCRIPTION"""
+${POI.DESCRIPTION}
+---
+$RULE_MIN_SUPPORT_DESCRIPTION
+---
+$RULE_MIN_CONVICTION_DESCRIPTION
+---
+$RULE_MAX_COMPLEXITY_DESCRIPTION
+---
+$RULE_TOP_DESCRIPTION
+---
+$RULE_OUT_DESCRIPTION"""
 
         @JvmStatic fun forDataSet(genomeQuery: GenomeQuery, dataSet: DataSet): DataConfig {
             val tracks = dataSet.collect(genomeQuery)
@@ -183,18 +211,19 @@ $POI_DESCRIPTION"""
         fun load(reader: Reader): DataConfig {
             val yaml = YamlReader(reader)
             val proxy = yaml.read(Proxy::class.java)
-            return DataConfig(proxy.id ?: "",
+            return DataConfig(proxy.id ?: "unknown",
                     GenomeQuery.Companion.parse(proxy.genome),
                     proxy.tracks.unwrap(),
-                    POI(proxy.poi))
+                    POI(proxy.poi),
+                    proxy.rule_min_support,
+                    proxy.rule_min_conviction,
+                    proxy.rule_max_complexity,
+                    proxy.rule_top,
+                    proxy.rule_output)
         }
 
         /**
          * A temporary object for loading weakly-typed YAML data.
-         *
-         * Turns out it's easier to load a YAML file as a map than to make
-         * `yamlbeans` understand how to load our classes.
-         *
          * Must be public due to `yamlbeans` design.
          * IMPORTANT: default values are not serialized by `yamlbeans` design!
          */
@@ -202,10 +231,25 @@ $POI_DESCRIPTION"""
             @JvmField var id: String? = null
             @JvmField var genome = "<unknown>"
             @JvmField var tracks = LinkedHashMap<String, Map<String, Any>>()
+            /**
+             * Additional config for [RawDataExperiment] and [PredicatesExperiment]
+             */
             @JvmField var poi = emptyList<String>()
+            /**
+             * Additional config for [RulesExperiment], etc.
+             */
+            @JvmField var rule_max_complexity: Double = DataConfig.DEFAULT_RULE_MAX_COMPLEXITY
+            @JvmField var rule_min_support: Int = DataConfig.DEFAULT_RULE_MIN_SUPPORT
+            @JvmField var rule_min_conviction: Double = DataConfig.DEFAULT_RULE_MIN_CONVICTION
+            @JvmField var rule_top: Int = DataConfig.DEFAULT_RULE_TOP
+            @JvmField var rule_output: Int = DataConfig.DEFAULT_RULE_OUTPUT
         }
 
-        // TODO: validation and sane error messages.
+
+        /**
+         * Transforms tracks into typed structure for tracks, i.e. Map modification -> Map CellId -> Section
+         * TODO: validation and sane error messages.
+         */
         @Suppress("unchecked_cast")
         private fun Map<String, Map<String, Any>>.unwrap(): LinkedHashMap<Pair<String, CellId>, Section> {
             val acc = LinkedHashMap<Pair<String, CellId>, Section>()
@@ -293,8 +337,14 @@ private fun DataSet.collect(genomeQuery: GenomeQuery): LinkedHashMap<Pair<String
                 check(parents.size == 1) { "multi-directory replicates aren't supported" }
                 replicate to parents.first()
             }.toMap()
+
             if (replicates.isNotEmpty()) {
-                tracks[DataType.TRANSCRIPTOME.id to cellId] = Section.Labeled(replicates)
+                if (replicates.size == 1) {
+                    // Do not use labels in case of single replicate
+                    tracks[DataType.TRANSCRIPTOME.id to cellId] = Section.Implicit(replicates.values.toList())
+                } else {
+                    tracks[DataType.TRANSCRIPTOME.id to cellId] = Section.Labeled(replicates)
+                }
             }
         }
     }
@@ -305,7 +355,12 @@ private fun DataSet.collect(genomeQuery: GenomeQuery): LinkedHashMap<Pair<String
                 replicate to getMethylomePath(genomeQuery, cellId, replicate)
             }.toMap()
             if (replicates.isNotEmpty()) {
-                tracks[DataType.METHYLOME.id to cellId] = Section.Labeled(replicates)
+                if (replicates.size == 1) {
+                    // Do not use labels in case of single replicate
+                    tracks[DataType.METHYLOME.id to cellId] = Section.Implicit(replicates.values.toList())
+                } else {
+                    tracks[DataType.METHYLOME.id to cellId] = Section.Labeled(replicates)
+                }
             }
         }
     }

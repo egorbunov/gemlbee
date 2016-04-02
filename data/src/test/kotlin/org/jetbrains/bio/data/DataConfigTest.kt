@@ -55,27 +55,6 @@ class DataConfigTest {
         }
     }
 
-    @Test fun saveNothing() {
-        withConfig { config ->
-            val writer = StringWriter()
-            config.save(writer,
-                    printComment = false, printId = false, printGenome = false, printPoi = false, printTracks = false)
-            assertEquals("{}\n", writer.toString())
-        }
-    }
-
-    @Test fun saveTracks() {
-        withConfig { config ->
-            val writer = StringWriter()
-            config.save(writer,  printComment = false, printId = false, printGenome = false, printPoi = false)
-            val save = writer.toString()
-            assertFalse("#" in save)
-            assertFalse("id: " in save)
-            assertFalse("genome: " in save)
-            assertFalse("poi:" in save)
-        }
-    }
-
     @Test fun loadPOI() {
         withTempFile("test", ".bed") { p ->
             val config = """genome: to1
@@ -94,7 +73,8 @@ poi:
 
     @Test fun savePOI() {
         withTempFile("test", ".bed") { p ->
-            val config = """genome: to1
+            val config = """id: unknown
+genome: to1
 poi:
 - H3K4me3@cds
 - H3K4me3@exons
@@ -194,6 +174,74 @@ tracks:
         }
     }
 
+
+    @Test fun testMeth() {
+        withTempFile("test1", ".bam") { p ->
+            val config = """genome: to1
+tracks:
+   meth:
+      t:
+      - $p
+"""
+            val dc = DataConfig.load(config.reader())
+            assertEquals(1, dc.tracks.size)
+            assertEquals(1, dc.tracks.keys.size)
+            assertEquals("(meth, t)", dc.tracks.keys.first().toString())
+            assert(dc.tracks.values.first() is Section.Implicit)
+        }
+    }
+
+
+    @Test fun testMethLabeled() {
+        withTempFile("test1", ".bam") { p ->
+            val config = """genome: to1
+tracks:
+   meth:
+      t:
+        a: $p
+        b: $p
+"""
+            val dc = DataConfig.load(config.reader())
+            assert(dc.tracks.values.first() is Section.Labeled)
+            assertEquals("[a, b]", (dc.tracks.values.first() as Section.Labeled).replicates.keys.toString())
+        }
+    }
+
+
+    @Test fun testExpression() {
+        withTempFile("test1", ".fastq") { p ->
+            val config = """genome: to1
+tracks:
+   rna-seq:
+      t:
+      - $p
+"""
+            val dc = DataConfig.load(config.reader())
+            assertEquals(1, dc.tracks.size)
+            assertEquals(1, dc.tracks.keys.size)
+            assertEquals("(rna-seq, t)", dc.tracks.keys.first().toString())
+            assert(dc.tracks.values.first() is Section.Implicit)
+        }
+    }
+
+
+    @Test fun testExpressionLabeled() {
+        withTempFile("test1", ".fastq") { p ->
+            val config = """genome: to1
+tracks:
+   rna-seq:
+      t:
+        a: $p
+        b: $p
+"""
+            val dc = DataConfig.load(config.reader())
+            assert(dc.tracks.values.first() is Section.Labeled)
+            assertEquals("[a, b]", (dc.tracks.values.first() as Section.Labeled).replicates.keys.toString())
+        }
+    }
+
+
+
     @Test fun consistencyDataSet() {
         withTempFile("test1", ".bed") { tmp ->
             val genome = Genome.get("to1")
@@ -261,17 +309,81 @@ Supported file formats:
 - *.bed, *.bed.gz, *.bed.zip for ChIP-Seq
 - *.bam for BS-Seq
 - *.fastq, *.fastq.gz file/folder for transcriptome
+
 ---
 POI:
-POI = points of interest, you can use shortcut "all".
+POI = points of interest and predicates description.
+
+All regulatory loci:
+- cds, exons, introns, tes[-2000..2000], tes[2500..5000], transcript, tss[-2000..2000], tss[-5000..-2500], utr3, utr5
 
 poi:
-- all                   # All modifications x all regulatory loci + transcription
-- H3K4me3@all           # Modification at all regulatory loci
-- all@tss[-2000..2000]  # All modifications at given locus
-- meth@exons            # Methylation at given locus
-- transcription         # Transcription""",
+- all                       # All modifications x all regulatory loci + transcription
+- H3K4me3@all               # Modification at all regulatory loci
+- H3K4me3[80%][0.5]@all     # ChIP-Seq predicate, exist 80% range with >= 0.5 enrichment fraction
+- H3K4me3[1000][0.8]@all    # ChIP-Seq predicate, exist range of length = 1000 with >= 0.8 enrichment fraction
+- all@tss[-2000..2000]      # All modifications at given locus
+- meth@exons                # Methylation at given locus
+- meth[10][0.5]@tss         # Methylation predicate at least 0.5 enriched cytosines among at least 10 covered
+- transcription             # Transcription, i.e. tpm abundance + 25, 50, 75, 100 percentile discrimination
+---
+rule_min_support:
+If given limits min rule support of generated rules.
+---
+rule_min_conviction:
+If given limits min conviction of generated rules.
+---
+rule_max_complexity:
+If given limits max complexity of generated rules.
+---
+rule_top:
+If given configures rule mining algorithm precision, i.e. guaranteed top for each target.
+---
+rule_output:
+If given configures number of rules to output for each target.""",
                 DataConfig.FORMAT)
     }
+
+
+    @Test fun testRulesDefaults() {
+        withConfig { config ->
+            val writer = StringWriter()
+            config.save(writer)
+            val sdc = writer.toString().replace(Regex("#.*\n"), "")
+            assertFalse("rule_min_support:" in sdc)
+            assertEquals(0, config.ruleMinSupport)
+            assertFalse("rule_max_complexity" in sdc)
+            assertEquals(Double.POSITIVE_INFINITY, config.ruleMaxComplexity)
+            assertFalse("rule_min_conviction" in sdc)
+            assertEquals(0.0, config.ruleMinConviction)
+            assertFalse("rule_top" in sdc)
+            assertEquals(1, config.ruleTop)
+            assertFalse("rule_output" in sdc)
+            assertEquals(1, config.ruleOutput)
+        }
+    }
+
+    @Test fun testRulesSettings() {
+        withTempFile("test1", ".bed") { p ->
+            val config = """genome: to1
+rule_min_support: 100
+rule_min_conviction: 3.0
+rule_max_complexity: 10
+rule_top: 10
+rule_output: 100
+tracks:
+   H3K4me3:
+      t:
+      - $p
+"""
+            val dc = DataConfig.load(config.reader())
+            assertEquals(100, dc.ruleMinSupport)
+            assertEquals(3.0, dc.ruleMinConviction)
+            assertEquals(10.0, dc.ruleMaxComplexity)
+            assertEquals(10, dc.ruleTop)
+            assertEquals(100, dc.ruleOutput)
+        }
+    }
+
 
 }

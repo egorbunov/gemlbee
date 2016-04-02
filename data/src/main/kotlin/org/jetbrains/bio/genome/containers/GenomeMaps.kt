@@ -1,6 +1,6 @@
 package org.jetbrains.bio.genome.containers
 
-import org.jetbrains.annotations.TestOnly
+import com.google.common.annotations.VisibleForTesting
 import org.jetbrains.bio.ext.await
 import org.jetbrains.bio.genome.Chromosome
 import org.jetbrains.bio.genome.Strand
@@ -164,6 +164,6 @@ open class ConcurrentGenomeStrandMap<T>(
         }
     }
 
-    @TestOnly fun snapshot() = (0..data.length() - 1).map { data[it] }
+    @VisibleForTesting fun snapshot() = (0..data.length() - 1).map { data[it] }
 }
 

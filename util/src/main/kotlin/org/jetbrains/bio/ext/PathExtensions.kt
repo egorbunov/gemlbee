@@ -26,6 +26,10 @@ fun Array<String>.toPath(): Path {
 
 fun String.toPath() = Paths.get(this)
 
+fun Path.resolve(vararg chunks: String): Path {
+    return arrayOf(toString(), *chunks).toPath()
+}
+
 operator fun Path.div(other: String) = div(other.toPath())
 operator fun Path.div(other: Path) = resolve(other)
 operator fun String.div(other: String) = div(other.toPath())
@@ -323,7 +327,7 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
                         LOG.debug("$label: Force recalculate empty $thisPathStr file: size = ${size.asFileSize()}.")
                     }
                     result = LOG.time(level = Level.INFO,
-                                      message = "$label: Missing $thisPathStr") {
+                            message = "$label: processing $thisPathStr") {
 
                         // XXX: Guarantees that file will be recalculated in transaction-like
                         // style only for locked path (this). If recalculates writes other
@@ -403,7 +407,7 @@ fun Path.inputStream(vararg options: OpenOption): InputStream {
         "gz"  -> GZIPInputStream(inputStream)
         "zip" ->
             // This only works for single-entry ZIP files.
-            ZipInputStream(inputStream).apply { getNextEntry() }
+            ZipInputStream(inputStream).apply { nextEntry }
         else  -> inputStream
     }
 }

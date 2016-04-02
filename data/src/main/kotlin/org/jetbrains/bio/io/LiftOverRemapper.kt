@@ -34,7 +34,7 @@ class LiftOverRemapper private constructor(chainPath: Path, targetBuild: String)
                 .build<Pair<String, String>, LiftOverRemapper>()
 
         operator fun invoke(sourceBuild: String, targetBuild: String): LiftOverRemapper {
-            return CACHE[sourceBuild to targetBuild, {
+            return CACHE.get(sourceBuild to targetBuild) {
                 val chain = "${sourceBuild.toLowerCase()}To${targetBuild.capitalize()}.over.chain.gz"
                 val path = Configuration.genomesPath / targetBuild / chain
                 path.checkOrRecalculate(chain) { output ->
@@ -46,7 +46,7 @@ class LiftOverRemapper private constructor(chainPath: Path, targetBuild: String)
                 }
 
                 LiftOverRemapper(path, targetBuild)
-            }]
+            }
         }
     }
 }

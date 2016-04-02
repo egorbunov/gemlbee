@@ -7,8 +7,7 @@ import org.jetbrains.bio.browser.util.TrackUIUtil
 import org.jetbrains.bio.genome.query.GenomeQuery
 import java.awt.Color
 import java.awt.Graphics
-import java.util.stream.Collectors
-import java.util.stream.IntStream
+import java.util.*
 
 /**
  *
@@ -18,15 +17,15 @@ import java.util.stream.IntStream
  * @author Evgeny Kurbatsky
  * @author Oleg Shpynov
  *
- * @since 6/1/15
+ * @since 06/01/15
  */
 open class MultiTrackView(val tracks: List<TrackView>, title: String) : TrackView(title) {
-    val size = tracks.size
-    val TRACK_KEYS = (0 until size).map { Key<Storage>("TRACK$it") }
+    private val TRACK_KEYS = tracks.indices.map { Key<Storage>("TRACK$it") }
 
     init {
         require(tracks.isNotEmpty()) { "no tracks" }
-        preferredHeight = (tracks.map { it.preferredHeight }.sum());
+
+        preferredHeight = tracks.sumBy { it.preferredHeight }
     }
 
     override fun preprocess(genomeQuery: GenomeQuery) {
@@ -36,35 +35,27 @@ open class MultiTrackView(val tracks: List<TrackView>, title: String) : TrackVie
     override fun initConfig(model: SingleLocationBrowserModel, conf: Storage) {
         for ((i, track) in tracks.withIndex()) {
             val trackConf = conf.copy()
-            trackConf[TrackView.HEIGHT] = conf[TrackView.HEIGHT] / size
+            trackConf[TrackView.HEIGHT] = conf[TrackView.HEIGHT] / tracks.size
             track.initConfig(model, trackConf)
             conf[TRACK_KEYS[i]] = trackConf
         }
     }
 
     override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
+        val width = conf[TrackView.WIDTH]
+        val height = conf[TrackView.HEIGHT]
         for ((i, track) in tracks.withIndex()) {
-            val tackConf = conf[TRACK_KEYS[i]]
-            val scales = conf[TrackView.TRACK_SCALE]
-            tackConf[TrackView.TRACK_SCALE] = relevantScales(i, scales)
-            track.paintTrack(createNewGraphics(conf[TrackView.WIDTH], conf[TrackView.HEIGHT], g, i),
-                             model, tackConf)
+            track.paintTrack(createNewGraphics(width, height, g, i),
+                             model, conf[TRACK_KEYS[i]])
         }
     }
 
-    private fun relevantScales(i: Int, scales: List<TrackView.Scale>): List<TrackView.Scale> {
-        val offset = tracks.map { it.scalesNumber }.subList(0, i).sum()
-        return scales.subList(offset, offset + tracks[i].scalesNumber)
-    }
-
-    override fun drawAxis(g: Graphics, width: Int, height: Int,
-                          drawInBG: Boolean,
-                          scales: List<TrackView.Scale>) {
+    override fun drawAxis(g: Graphics, conf: Storage, width: Int, height: Int,
+                          drawInBG: Boolean) {
         tracks.forEachIndexed { i, track ->
             track.drawAxis(createNewGraphics(width, height, g, i),
-                           width, height / size,
-                           drawInBG,
-                           relevantScales(i, scales))
+                           conf[TRACK_KEYS[i]],
+                           width, height / tracks.size, drawInBG)
         }
     }
 
@@ -80,14 +71,18 @@ open class MultiTrackView(val tracks: List<TrackView>, title: String) : TrackVie
     }
 
     private fun createNewGraphics(width: Int, height: Int, g: Graphics, i: Int)
-            = g.create(0, i * height / size, width, height / size)
+            = g.create(0, i * height / tracks.size, width, height / tracks.size)
 
-    public override fun computeScale(model: SingleLocationBrowserModel,
-                                     conf: Storage): List<TrackView.Scale> {
-        return IntStream.range(0, tracks.size).mapToObj { i ->
-            tracks[i].computeScale(model, conf[TRACK_KEYS[i]])
-        }.collect(Collectors.toList<List<TrackView.Scale>>()).flatten()
+    override fun computeScales(model: SingleLocationBrowserModel,
+                               conf: Storage): List<Scale> {
+        val acc = ArrayList<Scale>()
+        for ((trackKey, track) in TRACK_KEYS zip tracks) {
+            val trackConf = conf[trackKey]
+            val trackScales = track.computeScales(model, trackConf)
+            trackConf[SCALES] = trackScales
+            acc.addAll(trackScales)
+        }
+
+        return acc
     }
-
-    override val scalesNumber = tracks.map { it.scalesNumber }.sum()
 }

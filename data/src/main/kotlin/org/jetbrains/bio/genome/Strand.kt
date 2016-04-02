@@ -20,21 +20,17 @@ enum class Strand(val char: Char) {
 
     fun opposite() = choose(MINUS, PLUS)
 
-    fun <T> choose(ifPlus: T, ifMinus: T) = if (isPlus()) ifPlus else ifMinus
+    @Suppress("NOTHING_TO_INLINE")  // Otherwise the arguments are boxed.
+    inline fun <T> choose(ifPlus: T, ifMinus: T) = if (isPlus()) ifPlus else ifMinus
 
     override fun toString() = char.toString()
 }
 
-fun Int.toStrand(): Strand {
-    return if (this > 0) Strand.PLUS else Strand.MINUS
-}
+fun Int.toStrand() = if (this > 0) Strand.PLUS else Strand.MINUS
 
-fun String.toStrand(): Strand {
-    require(length == 1)
-    return first().toStrand()
-}
+fun String.toStrand() = single().toStrand()
 
-fun Char.toStrand(): Strand = when (this) {
+fun Char.toStrand() = when (this) {
     '+'  -> Strand.PLUS
     '-'  -> Strand.MINUS
     else -> throw IllegalArgumentException(toString())
@@ -48,5 +44,6 @@ enum class StrandFilter(private val char: Char) {
         PLUS -> strand.isPlus()
         MINUS -> strand.isMinus()
     }
-    override fun toString(): String  = char.toString()
+
+    override fun toString()  = char.toString()
 }

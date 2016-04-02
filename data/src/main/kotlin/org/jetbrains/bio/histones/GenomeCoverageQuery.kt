@@ -31,7 +31,7 @@ class GenomeCoverageQuery private constructor(
                                  "genome query isn't complete ${genomeQuery.description}")
                     }
                     output to coverage
-                }, "GenomeCoverage")
+                }, "GenomeCoverage for $bedQuery")
     }
 
     override val id: String get() = bedQuery.id + (if (uniqueOnly) "_unique" else "")

@@ -6,11 +6,11 @@ import java.util.*
 /**
  * @author Roman.Chernyatchik
  */
-public object Colors {
+object Colors {
     // Set1 palette, a better option would be to parse the CSV, available
     // on the official website. See:
     // http://www.personal.psu.edu/cab38/ColorBrewer/ColorBrewer_RGB.html
-    public val COLOR_BREWER_SET1: Array<Color> = arrayOf(
+    val COLOR_BREWER_SET1: Array<Color> = arrayOf(
             Color(55, 126, 184),
             Color(77, 175, 74),
             Color(228, 26, 28),
@@ -74,7 +74,7 @@ public object Colors {
      * @param alpha (optional) color opacity, defaults to `255`.
      * @return a list of colors.
      */
-    public @JvmStatic @JvmOverloads fun palette(size: Int, alpha: Int = 255): List<Color> {
+    @JvmStatic @JvmOverloads fun palette(size: Int, alpha: Int = 255): List<Color> {
         return when {
             size == 0 -> emptyList()
             size <= COLOR_BREWER_SET1.size ->

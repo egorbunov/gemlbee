@@ -95,8 +95,8 @@ object UCSC {
      */
     @Throws(IOException::class)
     @JvmStatic fun downloadBatchTo(outputPath: Path,
-                                          build: String,
-                                          vararg chunks: Any) {
+                                   build: String,
+                                   vararg chunks: Any) {
         require(chunks.size > 0) { "expected at least a single chunk" }
         val template = chunks[chunks.size - 1].toString()
 
@@ -123,8 +123,8 @@ object UCSC {
 
     @Throws(IOException::class)
     @JvmStatic fun downloadTo(outputFile: Path,
-                                     build: String,
-                                     vararg chunks: Any) {
+                              build: String,
+                              vararg chunks: Any) {
         val uri = build + '/' + Joiner.on('/').join(chunks)
         val url = "http://hgdownload.cse.ucsc.edu/goldenPath/$uri";
         outputFile.checkOrRecalculate(build) { output ->

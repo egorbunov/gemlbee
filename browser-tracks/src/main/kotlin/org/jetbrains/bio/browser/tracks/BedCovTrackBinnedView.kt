@@ -50,11 +50,11 @@ class BedCovTrackBinnedView @JvmOverloads constructor(
         }.toArray().map { it.toFloat() }.toFloatArray()
     }
 
-    override fun computeScale(model: SingleLocationBrowserModel, conf: Storage): List<TrackView.Scale> {
-        val scales = super.computeScale(model, conf)
+    override fun computeScales(model: SingleLocationBrowserModel, conf: Storage): List<Scale> {
+        val scales = super.computeScales(model, conf)
 
         // Let render min from 0
-        return listOf(TrackView.Scale(0.0, scales[0].max))
+        return listOf(Scale(0.0, scales[0].max))
     }
 
     override fun renderer(layer: Int,

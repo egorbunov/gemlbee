@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.LongAdder
  *
  * Note that reporting and finishing tasks that haven't been added isn't an error.
  */
-public object MultitaskProgress {
+object MultitaskProgress {
     private val LOG = Logger.getLogger(MultitaskProgress::class.java)
 
     var startTime: Long = 0
@@ -56,7 +56,7 @@ public object MultitaskProgress {
      * the tracker is reset.
      * Tries to print progress by calling [reportIfNecessary].
      */
-    public @JvmStatic fun addTask(taskID: Any, items: Long) {
+    @JvmStatic fun addTask(taskID: Any, items: Long) {
         synchronized(taskID, {
             if (totalItemsByTasks.isEmpty()) {
                 reset()
@@ -76,7 +76,7 @@ public object MultitaskProgress {
      * Finish tracking a task. The unused iterations reserved by the task are subtracted from the total pool.
      * Tries to print progress by calling [reportIfNecessary].
      */
-    public @JvmStatic fun finishTask(taskID: Any) {
+    @JvmStatic fun finishTask(taskID: Any) {
         synchronized(taskID, {
             if (!totalItemsByTasks.containsKey(taskID)) {
                 return
@@ -92,7 +92,7 @@ public object MultitaskProgress {
      * Report that a task completed an iteration. If this exceeds the allotted number of iterations,
      * the number is doubled. Tries to print progress by calling [reportIfNecessary].
      */
-    public @JvmStatic fun reportTask(taskID: Any) {
+    @JvmStatic fun reportTask(taskID: Any) {
         if (!totalItemsByTasks.containsKey(taskID)) {
             return
         }

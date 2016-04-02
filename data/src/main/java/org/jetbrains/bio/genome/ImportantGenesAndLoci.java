@@ -73,17 +73,15 @@ public class ImportantGenesAndLoci {
 
   public static final List<LocusQuery<Gene>> REGULATORY = ImmutableList.of(
       new TssQuery(-5000, -2500),       // [1] Distal enhancer
-//      new TssQuery(-200, 200),          // [0, 7] Core promoter, used for DNA methylation
       new TssQuery(),                   // [3, 4, 7] Default ±2kbp - average
-
-//      new UTR5Query(),                  // [4]
-//      new UTR3Query(),                  // [4]
-//      new CDSQuery(),                   // [4]
+      new UTR5Query(),                  // [4]
+      new UTR3Query(),                  // [4]
+      new CDSQuery(),                   // [4]
       new IntronsQuery(),               // [4]
       new ExonsQuery(),                 // [4]
-
-      new TesQuery(),                  // Default ±2kbp
-      new TesQuery(2500, 5000));       // Distal Tes
+      new TranscriptQuery(),            // Important for H3K36me3
+      new TesQuery(),                   // Default ±2kbp
+      new TesQuery(2500, 5000));        // Distal TES
 
   private static final String[] DEVELOPMENTAL_GENES = new String[]{
       // Pluripotency factors
@@ -206,8 +204,6 @@ public class ImportantGenesAndLoci {
    * REM: short list: only 4 of 11 genes is mentioned in 2003 (NM_014453, NM_000175, NM_002794, NM_002796)
    * REM: full list: only 285 of 566 genes is mentioned in 2003
    * REM: full list: only 5 of first 2003 list (aka best expression) 10 genes is in full list
-   *
-   * @return short list of highly uniform and strongly expressed genes
    */
   private static final String[] HOUSE_KEEPING_GENES_2013_SHORT = new String[]{
       "NM_015449", // chr1: C1orf43  (chromosome 1 open reading frame 43)

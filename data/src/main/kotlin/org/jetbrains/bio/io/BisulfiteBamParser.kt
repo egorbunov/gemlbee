@@ -238,7 +238,7 @@ private class SamPiler(private val samReader: SamReader, chromosome: Chromosome)
         // Complete piled up columns preceding alignment start.
         val alignmentStart = record.alignmentStart
         while (waitingQueue.isNotEmpty()
-               && waitingQueue[0].position < alignmentStart) {
+               && waitingQueue.get(0).position < alignmentStart) {
             val pc = waitingQueue.removeAt(0)
             if (pc.isNotEmpty()) {
                 completedQueue.addLast(pc)

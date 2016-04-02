@@ -8,7 +8,11 @@ class ChromosomeGenesQuery(private val genesClass: GeneClass) :
         Query<Chromosome, Collection<Gene>> {
 
     override fun process(chromosome: Chromosome): Collection<Gene> {
-        return chromosome.genes.filter { it in genesClass }
+        return if (genesClass === GeneClass.ALL) {
+            chromosome.genes
+        } else {
+            chromosome.genes.filter { it in genesClass }
+        }
     }
 
     override val id: String get() = genesClass.id

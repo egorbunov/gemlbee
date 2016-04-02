@@ -179,7 +179,7 @@ public class TrackListComponent extends JPanel {
       final TrackView trackView = myTrackViews.get(i);
       final TrackViewComponent component = new TrackViewComponent(trackView, myBrowser, myUIModel);
       subscribeFocusDebuggingListener(component);
-      component.getMouseEventsTargets().forEach(this::subscribeOnMouseActions);
+      subscribeOnMouseActions(component);
       myComponentsMap.put(trackView, component);
 
       // Add split listener

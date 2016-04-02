@@ -1,5 +1,7 @@
 package org.jetbrains.bio.browser
 
+import sun.font.FontDesignMetrics
+import java.awt.Font
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 

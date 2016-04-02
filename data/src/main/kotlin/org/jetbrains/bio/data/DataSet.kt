@@ -17,7 +17,7 @@ enum class DataType(val id: String) {
     TRANSCRIPTOME("rna-seq");
 
     companion object {
-        internal val mapper: Map<String, DataType> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        internal val mapper: Map<String, DataType> by lazy() {
             val acc = HashMap<String, DataType>()
             ChipSeqTarget.values().forEach { acc[it.name.toLowerCase()] = CHIP_SEQ }
             acc[METHYLOME.id] = METHYLOME
@@ -28,10 +28,25 @@ enum class DataType(val id: String) {
 }
 
 fun String.toDataType(): DataType {
-    return DataType.mapper[toLowerCase()]
-           ?: error("Unsupported data type $this, available: " +
-                    DataType.mapper.keys.sorted().joinToString(", "))
+    val dataType = DataType.mapper[toLowerCase()]
+    if (dataType != null) {
+        return dataType
+    }
+    if (isChipSeqInput()) {
+        return DataType.CHIP_SEQ
+    }
+    error("Unsupported data type $this, available: " + DataType.mapper.keys.sorted().joinToString(", "))
 }
+
+fun String.isChipSeqInput() = "input" in this.toLowerCase()
+
+fun String.toChipSeqTarget(): ChipSeqTarget {
+    return if (isChipSeqInput())
+        ChipSeqTarget.Input
+    else ChipSeqTarget.valueOf(this)
+}
+
+
 
 abstract class DataSet protected constructor(
         /**
@@ -139,14 +154,8 @@ interface MethylomeDataSet : DataSetForwarder {
     fun getMethylomeQuery(genomeQuery: GenomeQuery, cellId: CellId,
                           replicate: String = ""): MethylomeQuery {
         return MethylomeQuery.forFile(genomeQuery, cellId.toString(),
-                                      getMethylomePath(genomeQuery, cellId, replicate),
-                                      id)
-    }
-
-    @Deprecated("Please update to the replicate-only API.")
-    fun getMethylomeQueryLegacy(genomeQuery: GenomeQuery, cellId: CellId,
-                                vararg rest: String): MethylomeQuery {
-        throw UnsupportedOperationException()
+                getMethylomePath(genomeQuery, cellId, replicate),
+                id)
     }
 }
 
@@ -187,9 +196,6 @@ enum class ChipSeqTarget(val isInput: Boolean = false) {
 interface ChipSeqDataSet : DataSetForwarder {
     val chipSeqTargets: List<ChipSeqTarget>
 
-    val chipSeqTargetsWithoutInput: List<ChipSeqTarget>
-        get() = chipSeqTargets.filterNot { it.isInput }
-
     fun getTracks(genomeQuery: GenomeQuery, cellId: CellId,
                   target: ChipSeqTarget): List<BedTrackQuery>
 
@@ -198,7 +204,7 @@ interface ChipSeqDataSet : DataSetForwarder {
         val tracks = getTracks(genomeQuery, cellId, target)
         check(tracks.size == 1) {
             "Expected a single track for " +
-            "${genomeQuery.build}/$cellId/$target, got: $tracks"
+                    "${genomeQuery.build}/$cellId/$target, got: $tracks"
         }
 
         return tracks.first()
@@ -210,7 +216,7 @@ interface ChipSeqDataSet : DataSetForwarder {
                 .filter({ track -> replicate in track.path.toString() })
         check(tracks.size == 1) {
             "Expected a single track for " +
-            "${genomeQuery.build}/$cellId ($replicate)/$target, got: $tracks"
+                    "${genomeQuery.build}/$cellId ($replicate)/$target, got: $tracks"
         }
 
         return tracks.first()

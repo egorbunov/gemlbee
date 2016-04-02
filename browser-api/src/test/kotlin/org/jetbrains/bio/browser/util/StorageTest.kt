@@ -4,7 +4,6 @@ import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 
 class StorageTest {
     lateinit private var storage: Storage
@@ -28,14 +27,6 @@ class StorageTest {
         assertEquals(2, storage[key])
     }
 
-    @Test fun testSetNullValue() {
-        val key = Key<Any>("KEY")
-        storage.init(key, 1)
-        storage[key] = null
-
-        assertFalse(storage.contains(key))
-    }
-
     @Test fun testListener() {
         val key = Key<Any>("KEY")
         val counter = AtomicInteger()
@@ -44,7 +35,7 @@ class StorageTest {
                 counter.incrementAndGet();
             }
         })
-        storage[key] = null
+
         assertEquals(0, counter.get())
         storage.init(key, 1)
         assertEquals(0, counter.get())

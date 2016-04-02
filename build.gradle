@@ -108,6 +108,12 @@ project(':cla') {
     }
 }
 
+project(':rules') {
+    dependencies {
+        compile project(':util')
+    }
+}
+
 project(':util') {
     dependencies {
         compile 'log4j:log4j:1.2.+'

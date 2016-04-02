@@ -6,7 +6,9 @@ data class CellId(val name: String, val description: String) {
 
     init {
         val key = name.toLowerCase()
-        check(key !in CACHE) { "Cell already registered: ${CACHE[key]}}"}
+        if (key in CACHE) {
+            LOG.warn("Cell already registered: ${CACHE[key]}")
+        }
         CACHE[key] = this
     }
 
@@ -19,10 +21,9 @@ data class CellId(val name: String, val description: String) {
         init {
             // Touch classes to Load them in JVM & perform auto-registration
             HumanCells.toString()
-            DatasetCells.toString()
         }
 
-        operator @JvmStatic fun get(name: String): CellId {
+        operator @JvmStatic @Synchronized fun get(name: String): CellId {
             if (name.toLowerCase() in CACHE) {
                 return CACHE[name.toLowerCase()]!!
             }
@@ -49,10 +50,4 @@ object HumanCells {
     val NHEK: CellId = CellId("NHEK", "Human epidermal keratinocytes")
     @JvmField val AL: CellId = CellId("AL", "Human atherosclerotic lesion")
     @JvmField val AO: CellId = CellId("AO", "Human aortic tissue")
-}
-
-object DatasetCells {
-    val HESC1_SIM: CellId = CellId("hesc1-sim", "Simulated human embryo cell, sample 1")
-    val HESC2_SIM: CellId = CellId("hesc2-sim", "Simulated human embryo cell, sample 2")
-    val HDC1_SIM: CellId = CellId("hdc1-sim", "Simulated human differentiated cell, sample 1")
 }

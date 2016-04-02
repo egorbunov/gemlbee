@@ -51,14 +51,14 @@ class LiftOverTrackView(private val trackView: TrackView,
         trackView.drawLegend(g, width, height, drawInBG)
     }
 
-    override fun drawAxis(g: Graphics, width: Int, height: Int, drawInBG: Boolean, scales: List<Scale>) {
-        trackView.drawAxis(g, width, height, drawInBG, scales);
+    override fun drawAxis(g: Graphics, conf: Storage, width: Int, height: Int, drawInBG: Boolean) {
+        trackView.drawAxis(g, conf, width, height, drawInBG);
     }
 
-    override fun computeScale(model: SingleLocationBrowserModel, conf: Storage): List<Scale> {
+    override fun computeScales(model: SingleLocationBrowserModel, conf: Storage): List<Scale> {
         val remapModel = remapModel(model)
         return if (remapModel != null) {
-            trackView.computeScale(remapModel, conf)
+            trackView.computeScales(remapModel, conf)
         } else listOf(Scale.undefined())
     }
 }

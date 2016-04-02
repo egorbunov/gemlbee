@@ -2,6 +2,7 @@ package org.jetbrains.bio.transcriptome
 
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import org.apache.commons.csv.CSVFormat
+import org.apache.log4j.Logger
 import org.jetbrains.bio.ext.*
 import org.jetbrains.bio.genome.*
 import org.jetbrains.bio.genome.query.InputQuery
@@ -33,8 +34,8 @@ class Kallisto(private val executable: Path = "kallisto".toPath()) {
      */
     fun run(genome: Genome, fastqReads: Array<Path>,
             outputPath: Path,
-            bootstrap: Int = 100,
-            threads: Int = Runtime.getRuntime().availableProcessors()): Result {
+            bootstrap: Int = 0, // Defaults: https://pachterlab.github.io/kallisto/manual.html
+            threads: Int = 1): Result {
         outputPath.createDirectories()
 
         val abundancePath = outputPath / "abundance.tsv"
@@ -57,7 +58,8 @@ class Kallisto(private val executable: Path = "kallisto".toPath()) {
             executable.run(
                     "quant",
                     "-i", indexPath, "-o", outputPath,
-                    "-b", bootstrap, "-t", threads.toString(),
+                    "-b", bootstrap.toString(),
+                    "-t", threads.toString(),
                     *extra, *fastqReads,
                     log = true)
         }
@@ -91,17 +93,21 @@ class Kallisto(private val executable: Path = "kallisto".toPath()) {
             val abundancePath = outputPath / "abundance.tsv"
             val acc = ArrayList<TranscriptAbundance>()
             for (row in FORMAT.parse(abundancePath.bufferedReader())) {
+                val alias = row["target_id"]
                 val gene = GeneResolver.getAny(
-                        genome.build, row["target_id"], GeneAliasType.ENSEMBL_ID)
+                        genome.build, alias, GeneAliasType.ENSEMBL_ID)
                 if (gene != null) {
                     acc.add(TranscriptAbundance(gene, row["tpm"].toDouble()))
+                } else {
+                    LOG.warn("Failed to load gene: $alias")
                 }
-            }
 
+            }
             return acc
         }
 
         companion object {
+            private val LOG = Logger.getLogger(Kallisto::class.java)
             private val FORMAT = CSVFormat.TDF
                     .withHeader("target_id", "length", "eff_length", "est_counts", "tpm")
                     .withSkipHeaderRecord()
@@ -135,6 +141,7 @@ class KallistoQuery(
     // XXX used in 'SleuthQuery'.
     val result: Kallisto.Result get() {
         val outputPath = Configuration.cachePath / "kallisto" / id
+        // Possible workaround for https://github.com/JetBrains-Research/epigenome/issues/823
         return Kallisto().run(genome, fastqReads, outputPath)
     }
 

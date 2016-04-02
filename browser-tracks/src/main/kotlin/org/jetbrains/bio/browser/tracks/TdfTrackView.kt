@@ -44,7 +44,7 @@ class TdfTrackView(val path: Path, val trackNumber: Int = 0) : TrackView(path.na
         }
     }
 
-    override fun computeScale(model: SingleLocationBrowserModel, conf: Storage): List<Scale> {
+    override fun computeScales(model: SingleLocationBrowserModel, conf: Storage): List<Scale> {
         val scores = tdf.summarize(model, trackNumber)
         return if (scores.isEmpty()) {
             listOf(Scale.undefined())
@@ -66,8 +66,8 @@ class TdfTrackView(val path: Path, val trackNumber: Int = 0) : TrackView(path.na
         }
     }
 
-    override fun drawAxis(g: Graphics, width: Int, height: Int, drawInBG: Boolean, scales: List<Scale>) {
-        TrackUIUtil.drawVerticalAxis(g, "", scales[0], drawInBG, width, height)
+    override fun drawAxis(g: Graphics, conf: Storage, width: Int, height: Int, drawInBG: Boolean) {
+        TrackUIUtil.drawVerticalAxis(g, "", conf[SCALES].single(), drawInBG, width, height)
     }
 }
 

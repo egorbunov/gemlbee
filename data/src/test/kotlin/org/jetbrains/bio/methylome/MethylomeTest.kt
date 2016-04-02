@@ -46,7 +46,7 @@ class MethylomeTest {
         val dC = BinomialDistribution(n, .25)
         val dT = BinomialDistribution(n, .5)
         for (i in 0..numInfos - 1) {
-            val chromosome = chromosomes[r.nextInt(chromosomes.size)]
+            val chromosome = chromosomes.get(r.nextInt(chromosomes.size))
             val strand = if (r.nextBoolean()) Strand.PLUS else Strand.MINUS
             builder.add(chromosome, strand, r.nextInt(100500), CytosineContext.CG,
                         dC.sample(), dT.sample())

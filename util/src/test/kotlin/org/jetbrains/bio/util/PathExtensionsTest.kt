@@ -89,7 +89,7 @@ class PathExtensionsTest {
                 lockedPath.checkOrRecalculate("thread #$id") { output ->
                     Thread.sleep(10)
                     output.let { it.write(byteArrayOf(0, 1, 2)) }
-                    recalcFlag.getAndIncrement()
+                    recalcFlag.andIncrement
                     output
                 }
             }
@@ -121,12 +121,12 @@ class PathExtensionsTest {
             val lockedPath = it / "locked.txt"
             execConcurrently { id ->
                 lockedPath.readOrRecalculate(
-                        { readFlag.getAndIncrement() },
+                        { readFlag.andIncrement },
                         {  output ->
                             output.let {
                                 Thread.sleep(10)
                                 lockedPath.write(byteArrayOf(0, 1, 2))
-                                recalcFlag.getAndIncrement()
+                                recalcFlag.andIncrement
                             } to Unit
                         },
                         "thread #$id")
@@ -143,7 +143,7 @@ class PathExtensionsTest {
                 lockedPath.checkOrRecalculate("thread #$id") { output ->
                     Thread.sleep(10)
                     // No write leave file empty
-                    recalcFlag.getAndIncrement()
+                    recalcFlag.andIncrement
                     output
                 }
 
@@ -160,7 +160,7 @@ class PathExtensionsTest {
                 lockedPath.checkOrRecalculate("thread #$id") { output ->
                     Thread.sleep(10)
                     // No write leave file empty
-                    recalcFlag.getAndIncrement()
+                    recalcFlag.andIncrement
                     output
                 }
             }
@@ -174,12 +174,12 @@ class PathExtensionsTest {
             lockedPath.write(byteArrayOf(0, 1, 2))
             execConcurrently { id ->
                 lockedPath.readOrRecalculate(
-                        { readFlag.getAndIncrement() },
+                        { readFlag.andIncrement },
                         { output ->
                             output.let { path ->
                                 Thread.sleep(10)
                                 // No write leave file empty
-                                recalcFlag.getAndIncrement()
+                                recalcFlag.andIncrement
                             } to Unit
                         }, "thread #$id")
             }

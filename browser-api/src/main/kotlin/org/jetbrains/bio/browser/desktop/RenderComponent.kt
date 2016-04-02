@@ -18,7 +18,7 @@ import javax.swing.SwingUtilities
 import javax.swing.Timer
 
 /**
- * Component use to draw [TrackView] or progress asynchronously
+ * Component use to draw [TrackView] or progress line asynchronously
  *
  * @author Roman Chernyatchik
  * @author Oleg Shpynov
@@ -61,20 +61,14 @@ class RenderComponent(val trackView: TrackView,
     override fun repaintRequired() {
         trace("Repaint required")
         restart()
-        SwingUtilities.invokeLater { this.repaint() }
+        SwingUtilities.invokeLater { repaint() }
     }
 
     override fun relayoutRequired() {
         trace("Relayout required")
 
         SwingUtilities.invokeLater {
-            // Invalidate the component and all its parents.
-            var c: Component? = this
-            while (c != null) {
-                c.invalidate()
-                c.validate()
-                c = c.parent
-            }
+            invalidate()
 
             // This should be safe to invoke from EDT thread because
             // rendering is done via thread pool. See [CancellableTask].
@@ -97,12 +91,21 @@ class RenderComponent(val trackView: TrackView,
             progress(g)
             return
         }
+
         if (!task.isDone) {
             progress(g)
             return
         }
+
         try {
             val rendered = task.get()
+
+            // The shape of the rendered image does not match that
+            // of the container. Try harder!
+            if (rendered.width != width || rendered.height != height) {
+                throw CancellationException()
+            }
+
             if (task == currentTask) {
                 trace("Done task ${task.id}")
                 g.drawImage(rendered, 0, 0, null)

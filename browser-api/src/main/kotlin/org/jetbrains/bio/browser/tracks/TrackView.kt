@@ -1,16 +1,18 @@
 package org.jetbrains.bio.browser.tracks
 
-import com.google.common.collect.Lists
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Key
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.genome.query.GenomeQuery
 import java.awt.Graphics
+import java.util.*
 import java.util.function.Consumer
 import javax.swing.JPanel
 
 /**
- * @author Roman.Chernyatchik
+ * A single track in the genome browser.
+ *
+ * @author Roman Chernyatchik
  */
 abstract class TrackView(title: String) {
     open var title: String = title
@@ -21,18 +23,13 @@ abstract class TrackView(title: String) {
         @JvmField val HEIGHT: Key<Int> = Key("HEIGHT")
         @JvmField val SHOW_LEGEND: Key<Boolean> = Key("SHOW_LEGEND")
         @JvmField val SHOW_AXIS: Key<Boolean> = Key("SHOW_AXIS")
-        /**
-         * See [.computeScale]
-         */
-        @JvmField val TRACK_SCALE: Key<List<Scale>> = Key("TRACK_SCALE")
+
+        @JvmField val SCALES: Key<List<Scale>> = Key("SCALES")
     }
 
-    open val scalesNumber: Int = 1
+    var preferredHeight = 50  // Please don't change this default. Why?
 
-    var preferredHeight: Int = 50 // Please don't change this default.
-
-    private val listeners = Lists.newArrayListWithExpectedSize<TrackViewListener>(2)
-
+    private val listeners = ArrayList<TrackViewListener>(1)
 
     /**
      * Preprocesses the track before rendering.
@@ -62,7 +59,6 @@ abstract class TrackView(title: String) {
         listeners.remove(listener)
     }
 
-
     fun fireRepaintRequired() {
         listeners.forEach { it.repaintRequired() }
     }
@@ -85,18 +81,17 @@ abstract class TrackView(title: String) {
     /**
      * Draw Y axis
      */
-    open fun drawAxis(g: Graphics, width: Int, height: Int, drawInBG: Boolean, scales: List<Scale>) {
+    open fun drawAxis(g: Graphics, conf: Storage, width: Int, height: Int, drawInBG: Boolean) {
     }
 
     /**
      * @return Pair of min/max for each track
      */
-    open fun computeScale(model: SingleLocationBrowserModel, conf: Storage): List<Scale>
+    open fun computeScales(model: SingleLocationBrowserModel, conf: Storage): List<Scale>
             = listOf(Scale.undefined())
 
     data class Scale(val min: Double, val max: Double) {
-
-        fun union(other: Scale): Scale {
+        infix fun union(other: Scale): Scale {
             val newMin = when {
                 min.isFinite() -> if (other.min.isFinite()) Math.min(min, other.min) else min
                 else -> other.min

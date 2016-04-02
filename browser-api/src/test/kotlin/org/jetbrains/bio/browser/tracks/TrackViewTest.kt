@@ -1,30 +1,28 @@
 package org.jetbrains.bio.browser.tracks
 
-import junit.framework.TestCase
+import org.jetbrains.bio.browser.tracks.TrackView.Scale
+import org.junit.Test
+import kotlin.test.assertEquals
 
-/**
- * @author Oleg Shpynov
- */
-public class TrackViewTest : TestCase() {
-    public fun testScaleSumFinite() {
-        val scale1 = TrackView.Scale(-10.0, 10.0)
-        val scale2 = TrackView.Scale(-100.0, 100.0)
+class ScaleTest {
+    @Test fun unionFinite() {
+        val scale1 = Scale(80.0, 120.0)
+        val scale2 = Scale(-100.0, 100.0)
 
-        TestCase.assertEquals(TrackView.Scale(-100.0, 100.0), scale1.union(scale2))
-        TestCase.assertEquals(TrackView.Scale(-100.0, 100.0), scale2.union(scale1))
+        assertEquals(Scale(-100.0, 120.0), scale1 union scale2)
+        assertEquals(Scale(-100.0, 120.0), scale2 union scale1)
     }
 
-    public fun testScaleSumNans() {
-        val naScale = TrackView.Scale.undefined()
-
-        TestCase.assertEquals(naScale, naScale.union(naScale))
+    @Test fun unionUndefined() {
+        val naScale = Scale.undefined()
+        assertEquals(naScale, naScale union naScale)
     }
 
-    public fun testScaleSumWithNan() {
-        val scale1 = TrackView.Scale(-10.0, 10.0)
-        val naScale = TrackView.Scale.undefined()
+    @Test fun unionWithUndefined() {
+        val scale1 = Scale(-10.0, 10.0)
+        val naScale = Scale.undefined()
 
-        TestCase.assertEquals(TrackView.Scale(-10.0, 10.0), scale1.union(naScale))
-        TestCase.assertEquals(TrackView.Scale(-10.0, 10.0), naScale.union(scale1))
+        assertEquals(scale1, scale1 union naScale)
+        assertEquals(scale1, naScale union scale1)
     }
 }

@@ -7,11 +7,10 @@ import org.apache.log4j.Logger
 /**
  *  Measures the running time of a given possibly impure [block].
  */
-public inline fun <R> Logger.time(level: Level = Level.DEBUG,
-                                  message: String = "",
-                                  logStart: Boolean = true,
-                                  block: () -> R): R {
-    if (logStart) log(level, "$message...")
+inline fun <R> Logger.time(level: Level = Level.DEBUG,
+                           message: String = "",
+                           block: () -> R): R {
+    log(level, "$message...")
     val stopwatch = Stopwatch.createStarted()
 
     val res = try {

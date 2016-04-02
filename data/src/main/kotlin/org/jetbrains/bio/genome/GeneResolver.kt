@@ -35,7 +35,7 @@ object GeneResolver {
     }
 
     @JvmStatic fun getAny(build: String, alias: String,
-                                 aliasType: GeneAliasType): Gene? {
+                          aliasType: GeneAliasType): Gene? {
         val matches = matching(build, alias, aliasType).toList()
         if (matches.size > 1) {
             LOG.warn("$alias ($aliasType) resolved to ${matches.size} genes: $matches")
@@ -52,7 +52,7 @@ object GeneResolver {
     }
 
     @JvmStatic fun get(build: String, alias: String,
-                              aliasType: GeneAliasType): List<Gene> {
+                       aliasType: GeneAliasType): List<Gene> {
         return ImmutableList.copyOf(matching(build, alias, aliasType).iterator())
     }
 
@@ -65,7 +65,15 @@ object GeneResolver {
 
     private fun matching(build: String, alias: String, aliasType: GeneAliasType): Sequence<Gene> {
         val genesMap = genesMapFor(build, aliasType)
-        return genesMap[alias.toUpperCase()].asSequence()
+        // TODO[oleg] hack, but KallistoQuery produce ENSEMBL Genes with .x notations
+        val genesForAlias = genesMap[alias.toUpperCase()]
+        if (genesForAlias.isNotEmpty()) {
+            return genesForAlias.asSequence()
+        }
+        if (aliasType == GeneAliasType.ENSEMBL_ID && alias.substringAfterLast(".").matches(Regex("[0-9]+"))) {
+            return genesMap[alias.substringBeforeLast(".").toUpperCase()].asSequence()
+        }
+        return emptySequence()
     }
 
     private fun genesMapFor(build: String, aliasType: GeneAliasType): ListMultimap<String, Gene> {

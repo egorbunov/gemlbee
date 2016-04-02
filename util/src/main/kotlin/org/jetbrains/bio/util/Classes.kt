@@ -74,11 +74,9 @@ object ClassProcessor {
             }
         } catch (e: Exception) {
             // Cannot call getInstance
-            LOG.error(e)
+            LOG.debug(e)
         }
-
-        // Give up, cannot initialize
-        LOG.debug("Failed to create instance for class: " + clazzz.name)
+        LOG.warn("Failed to create instance for class: ${clazzz.name}")
         return null
     }
 

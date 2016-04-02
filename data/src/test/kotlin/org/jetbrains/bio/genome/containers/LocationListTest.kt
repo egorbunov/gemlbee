@@ -60,7 +60,7 @@ class LocationListTest {
     @Test fun testCollapse() {
         val locationList = testList(Location(10, 20, chromosome),
                                     Location(20, 30, chromosome))
-        val get = locationList[chromosome, Strand.PLUS]
+        val get = locationList.get(chromosome, Strand.PLUS)
         assertTrue(Location(10, 30, chromosome) in get)
     }
 

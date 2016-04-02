@@ -38,7 +38,7 @@ interface GenomeBrowser {
         result.addAll(LociCompletion[model.genomeQuery])
         result.addAll(locationsMap.keys)
         for (locusType in LocusType.values()) {
-            result.add(if (locusType === LocusType.WHOLE_GENE) "genes" else locusType.toString())
+            result.add(if (locusType === LocusType.TSS_GENE_TES) "genes" else locusType.toString())
         }
 
         for (i in 0 until 1000) {

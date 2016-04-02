@@ -2,7 +2,6 @@ package org.jetbrains.bio.genome.query
 
 import com.google.common.base.Joiner
 import org.jetbrains.bio.genome.*
-import org.jetbrains.bio.genome.query.locus.GeneLocusQuery
 import org.jetbrains.bio.genome.query.locus.LocusQuery
 
 /**
@@ -82,7 +81,7 @@ class GenomeLocusQuery<Input, Item> private constructor(
                 return of(locusType.createQuery())
             }
 
-            val geneLocusQuery = GeneLocusQuery.of(text)
+            val geneLocusQuery: LocusQuery<Gene>? = null; // GeneLocusQuery.of(text)
             return if (geneLocusQuery != null) of(geneLocusQuery, GeneClass.ALL) else null
         }
     }

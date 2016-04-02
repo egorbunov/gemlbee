@@ -158,7 +158,7 @@ object Genes {
     private val GENES_CACHE = cache<Gene>()
 
     internal fun all(genome: Genome): ListMultimap<Chromosome, Gene> {
-        return GENES_CACHE[genome.build, {
+        return GENES_CACHE.get(genome.build) {
             val genesPath = genome.dataPath / "genes.json"
 
             genesPath.checkOrRecalculate("Genes") { output ->
@@ -167,7 +167,7 @@ object Genes {
                 }
             }
             read(genesPath)
-        }]
+        }
     }
 
     /** Visible only for [TestOrganismDataGenerator]. */

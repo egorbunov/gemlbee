@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class Key<T>(val id: String) {
     @Suppress("UNCHECKED_CAST")
-    fun valueOf(v: Any): T = v as T
+    fun cast(v: Any?): T = v as T
 }
 
 interface Listener {
@@ -31,18 +31,16 @@ class Storage {
         if (!contains(key)) {
             throw NoSuchElementException(key.toString())
         }
-        return key.valueOf(map[key.id]!!)
+        return key.cast(map[key.id])
     }
 
-    operator fun <T> set(key: Key<T>, value: T?) {
+    operator fun <T> set(key: Key<T>, value: T) {
         if (map[key.id] == value) {
             return
         }
-        if (value != null) {
-            map.put(key.id, value)
-        } else {
-            map.remove(key.id)
-        }
+
+        map.put(key.id, value as Any)
+
         synchronized (listeners) {
             listeners.forEach { l -> l.valueChanged(key, value) }
         }

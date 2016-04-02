@@ -7,15 +7,12 @@ import org.jetbrains.bio.genome.query.GenomeQuery
 import org.jetbrains.bio.genome.query.InputQuery
 import org.jetbrains.bio.io.BedEntry
 import org.jetbrains.bio.io.BedFormat
+import org.jetbrains.bio.io.BedParser
 import java.nio.file.Path
 
 class BedTrackQuery(val genomeQuery: GenomeQuery, val path: Path,
-                    val format: BedFormat = BedFormat.auto(path)) :
+                    val format: BedFormat? = null) :
         InputQuery<Iterable<BedEntry>> {
-
-    init {
-        require(path.exists && path.isRegularFile) { "Bad file: $path" }
-    }
 
     override val id: String get() = path.stem
 
@@ -23,5 +20,8 @@ class BedTrackQuery(val genomeQuery: GenomeQuery, val path: Path,
 
     override fun toString() = description
 
-    override fun getUncached() = format.parse(path)
+    override fun getUncached(): BedParser {
+        require(path.exists && path.isRegularFile) { "Bad file: $path" }
+        return (format ?: BedFormat.auto(path)).parse(path)
+    }
 }

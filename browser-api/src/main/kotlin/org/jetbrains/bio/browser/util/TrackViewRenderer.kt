@@ -7,7 +7,6 @@ import org.jetbrains.bio.browser.model.MultipleLocationsBrowserModel
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.tasks.CancellableState
 import org.jetbrains.bio.browser.tracks.TrackView
-import org.jetbrains.bio.ext.stream
 import org.jetbrains.bio.genome.query.GenomeQuery
 import java.awt.AlphaComposite
 import java.awt.Color
@@ -16,22 +15,21 @@ import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.util.*
 import java.util.concurrent.CancellationException
-import java.util.stream.Collectors
 
 /**
  * Util class to paint either trackView for browser model or for multiple locations.
  *
  * @author Oleg Shpynov
  */
-public object TrackViewRenderer {
+object TrackViewRenderer {
     @JvmField val TITLE_HEIGHT = TrackUIUtil.DEFAULT_FONT_HEIGHT + 10
 
     @Throws(CancellationException::class)
-    public @JvmStatic fun paintHeadless(model: BrowserModel,
-                                        g: Graphics,
-                                        trackView: TrackView,
-                                        width: Int, height: Int,
-                                        cancellableState: CancellableState) {
+    @JvmStatic fun paintHeadless(model: BrowserModel,
+                                 g: Graphics,
+                                 trackView: TrackView,
+                                 width: Int, height: Int,
+                                 cancellableState: CancellableState) {
         (g as Graphics2D).background = Color.WHITE
         g.clearRect(0, 0, width, TITLE_HEIGHT)
         if (trackView.title.isNotBlank()) {
@@ -55,13 +53,13 @@ public object TrackViewRenderer {
     }
 
     @Throws(CancellationException::class)
-    public @JvmStatic fun paintToImage(bufferedImage: BufferedImage,
-                                       model: BrowserModel,
-                                       width: Int, height: Int,
-                                       trackView: TrackView,
-                                       cancellableState: CancellableState,
-                                       drawLocationsSeparator: Boolean,
-                                       uiModel: Storage) {
+    @JvmStatic fun paintToImage(bufferedImage: BufferedImage,
+                                model: BrowserModel,
+                                width: Int, height: Int,
+                                trackView: TrackView,
+                                cancellableState: CancellableState,
+                                drawLocationsSeparator: Boolean,
+                                uiModel: Storage) {
 
         val modelCopy = model.copy()
 
@@ -72,19 +70,15 @@ public object TrackViewRenderer {
         val g2d = bufferedImage.createAAGraphics()
         try {
             if (modelCopy is MultipleLocationsBrowserModel) {
-                val modelsAndConfigs
-                        = prepareModelsAndConfigs(modelCopy.genomeQuery,
-                        config,
-                        modelCopy.visibleLocations(),
-                        width)
+                val modelsAndConfigs = prepareModelsAndConfigs(
+                        modelCopy.genomeQuery, config,
+                        modelCopy.visibleLocations(), width)
 
-                // Init configs:
                 for ((locModel, locConf) in modelsAndConfigs) {
                     trackView.initConfig(locModel, locConf)
                 }
 
-                // Scales
-                computeScale(trackView, config, modelsAndConfigs)
+                computeScale(trackView, modelsAndConfigs)
 
                 var x = 0
                 for ((locModel, locConf) in modelsAndConfigs) {
@@ -106,14 +100,14 @@ public object TrackViewRenderer {
             } else {
                 val singleModelCopy = modelCopy as SingleLocationBrowserModel
                 trackView.initConfig(singleModelCopy, config)
-                computeScale(trackView, config, listOf(singleModelCopy to config))
+                computeScale(trackView, listOf(singleModelCopy to config))
                 trackView.paintTrack(g2d, singleModelCopy, config)
             }
 
             // all have same scale
             if (config[TrackView.SHOW_AXIS]) {
                 g2d.composite = AlphaComposite.SrcOver
-                trackView.drawAxis(g2d, width, height, false, config[TrackView.TRACK_SCALE])
+                trackView.drawAxis(g2d, config, width, height, false)
             }
 
             // Draw legend
@@ -142,7 +136,7 @@ public object TrackViewRenderer {
             val locWidth = locWidths[i]
             if (locWidth > 0) {
                 val model = SingleLocationBrowserModel(genomeQuery, locRef.location.chromosome,
-                        locRef.location.toRange(), locRef)
+                                                       locRef.location.toRange(), locRef)
                 val newConfiguration = config.copy()
                 newConfiguration[TrackView.WIDTH] = locWidth
 
@@ -154,26 +148,17 @@ public object TrackViewRenderer {
 
     /**
      * Compute scales for all the models, i.e. difference locations and summarize them
-     * using [org.jetbrains.bio.browser.view.TrackView.Scale.or]
+     * using [TrackView.Scale.union].
      */
     private fun computeScale(trackView: TrackView,
-                             storage: Storage,
                              modelsAndConfigs: List<Pair<SingleLocationBrowserModel, Storage>>) {
-        val locsScales = modelsAndConfigs.stream().map { m2Config ->
-            trackView.computeScale(m2Config.first, m2Config.second)
-        }.collect(Collectors.toList<List<TrackView.Scale>>())
-
-        val commonScales = (0 until trackView.scalesNumber).map { layer ->
-            when {
-                locsScales.isEmpty() -> TrackView.Scale.undefined()
-                else -> locsScales.map { it[layer] }.reduce { sc1, sc2 -> sc1.union(sc2) }
-            }
+        val commonScales = modelsAndConfigs.map { m2Config ->
+            trackView.computeScales(m2Config.first, m2Config.second)
+                    .fold(TrackView.Scale.undefined(), TrackView.Scale::union)
         }
 
-        storage[TrackView.TRACK_SCALE] = commonScales
         for ((model, conf) in modelsAndConfigs) {
-            conf[TrackView.TRACK_SCALE] = commonScales
+            conf[TrackView.SCALES] = commonScales
         }
     }
-
 }

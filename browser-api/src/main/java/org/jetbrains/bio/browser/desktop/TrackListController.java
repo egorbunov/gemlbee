@@ -379,12 +379,6 @@ public class TrackListController {
     }
   }
 
-  protected void doSelectAllTracks() {
-    final List<TrackViewComponent> selectedTrackViewComponents = myTrackListComponent.getTrackViewComponents();
-    for (final TrackViewComponent component : selectedTrackViewComponents) {
-      component.setSelected(true);
-    }
-  }
   /////////////////////////////////////////////////////////
 
   @SuppressWarnings("MethodOnlyUsedFromInnerClass")
@@ -396,7 +390,7 @@ public class TrackListController {
     }
   }
 
-    public void execute(final Command cmd) {
+  public void execute(final Command cmd) {
     myHistory.execute(cmd);
     myTrackListComponent.requestFocus();
   }

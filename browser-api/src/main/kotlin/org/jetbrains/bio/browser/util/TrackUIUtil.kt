@@ -40,7 +40,7 @@ object TrackUIUtil {
     /**
      * Draw axis. If realScale is Scale.undefined() than do not show tick marks
      */
-    public @JvmOverloads @JvmStatic fun drawVerticalAxis(
+    @JvmOverloads @JvmStatic fun drawVerticalAxis(
             g: Graphics,
             yAxisTitle: String,
             visibleScale: TrackView.Scale,
@@ -95,12 +95,9 @@ object TrackUIUtil {
         g.drawLine(axisScreenX, plotTopScreenY, axisScreenX, plotBottomScreenY)
 
         // Draw tick marks axis
-        tickValueYTextY.forEach { valYMarkTextY ->
-            val (valueY, text, textY) = valYMarkTextY
-
+        for ((valueY, text, textY) in tickValueYTextY) {
             g.drawLine(axisScreenX - tickMarkHalfLength, valueY,
-                    axisScreenX + tickMarkHalfLength, valueY)
-
+                       axisScreenX + tickMarkHalfLength, valueY)
             g.drawString(text, axisScreenX + tickMarkHalfLength + 2, textY)
         }
     }
@@ -108,7 +105,7 @@ object TrackUIUtil {
     /**
      * Draws string on the screen on the white background, useful when printing over track
      */
-    public @JvmStatic fun drawString(g: Graphics, string: String, x: Int, y: Int, color: Color) {
+    @JvmStatic fun drawString(g: Graphics, string: String, x: Int, y: Int, color: Color) {
         val bounds = g.fontMetrics.getStringBounds(string, g)
         val width = bounds.height.toInt()
         val height = bounds.width.toInt()
@@ -119,8 +116,8 @@ object TrackUIUtil {
         g.drawString(string, x, y)
     }
 
-    public @JvmStatic fun locationsWidths(namedLocations: List<LocationAware>,
-                                          screenWidth: Int): List<Int> {
+    @JvmStatic fun locationsWidths(namedLocations: List<LocationAware>,
+                                   screenWidth: Int): List<Int> {
         val cumulativeLength = namedLocations.stream().mapToInt { it.location.length() }.sum()
 
 
@@ -138,7 +135,7 @@ object TrackUIUtil {
         return locWidth
     }
 
-    public @JvmStatic fun drawGrid(g: Graphics, range: Range, width: Int, height: Int) {
+    @JvmStatic fun drawGrid(g: Graphics, range: Range, width: Int, height: Int) {
         val stepSize = stepSize(range.length())
         g.color = Color.LIGHT_GRAY
 
@@ -148,10 +145,10 @@ object TrackUIUtil {
         }
     }
 
-    public @JvmStatic fun drawGrid(g: Graphics,
-                                   width: Int,
-                                   top: Int, bottom: Int,
-                                   multiModel: MultipleLocationsBrowserModel) {
+    @JvmStatic fun drawGrid(g: Graphics,
+                            width: Int,
+                            top: Int, bottom: Int,
+                            multiModel: MultipleLocationsBrowserModel) {
         // Configure graphics
         val originalStroke = (g as Graphics2D).stroke
         val dashed = BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0f, floatArrayOf(5f), 0f)
@@ -170,8 +167,7 @@ object TrackUIUtil {
         g.stroke = originalStroke
     }
 
-
-    public fun stepSize(length: Int): Int {
+    fun stepSize(length: Int): Int {
         // Step: 1, 5, 10, 50, 100, 500, ... bp
         var step = 1
         var times5 = true
@@ -182,11 +178,10 @@ object TrackUIUtil {
         return step
     }
 
-
-    public @JvmStatic fun drawBoxedLegend(g: Graphics,
-                                          trackWidth: Int, trackHeight: Int,
-                                          drawInBG: Boolean,
-                                          vararg legendItems: Pair<Color, String>) {
+    @JvmStatic fun drawBoxedLegend(g: Graphics,
+                                   trackWidth: Int, trackHeight: Int,
+                                   drawInBG: Boolean,
+                                   vararg legendItems: Pair<Color, String>) {
         check(legendItems.isNotEmpty())
 
         g.font = SMALL_FONT
@@ -243,12 +238,12 @@ object TrackUIUtil {
         }
     }
 
-    public @JvmStatic fun drawErrorMessage(g: Graphics, message: String) {
+    @JvmStatic fun drawErrorMessage(g: Graphics, message: String) {
         drawString(g, message, 10, g.fontMetrics.height, Color.RED);
     }
 
 
-    public @JvmStatic fun drawScaleRuler(g: Graphics, range: Range, width: Int, height: Int) {
+    @JvmStatic fun drawScaleRuler(g: Graphics, range: Range, width: Int, height: Int) {
         val regionLength = range.length()
         val stepSize = stepSize(regionLength)
 
@@ -267,7 +262,7 @@ object TrackUIUtil {
         g.drawString(text, leftMargin, scaleLineY - 4)
     }
 
-    public @JvmStatic fun drawOffsets(g: Graphics, range: Range, width: Int) {
+    @JvmStatic fun drawOffsets(g: Graphics, range: Range, width: Int) {
         val stepSize = stepSize(range.length())
 
         g.color = Color.BLACK

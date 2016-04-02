@@ -18,13 +18,13 @@ import java.nio.file.Path
  * @author Sergei Lebedev
  * @since 24/07/15
  */
-public class BigBedTrackView(path: Path, private val numBins: Int) : TrackView(path.name) {
+class BigBedTrackView(path: Path, private val numBins: Int) : TrackView(path.name) {
     private val bbf = BigBedFile.read(path)
 
     override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
         val width = conf[TrackView.WIDTH]
         val height = conf[TrackView.HEIGHT]
-        val (_min, max) = conf[TrackView.TRACK_SCALE].first()
+        val (_min, max) = conf[TrackView.SCALES].first()
         val step = width / numBins
         bbf.summarize(model.chromosomeRange, numBins).forEachIndexed { i, summary ->
             val h = (summary.sum / max * height).toInt()
@@ -39,18 +39,18 @@ public class BigBedTrackView(path: Path, private val numBins: Int) : TrackView(p
     }
 
 
-    override fun drawAxis(g: Graphics,
+    override fun drawAxis(g: Graphics, conf: Storage,
                           width:Int, height:Int,
-                          drawInBG: Boolean,
-                          scales: List<TrackView.Scale>) {
-        TrackUIUtil.drawVerticalAxis(g, "The Marsians", scales.first(), drawInBG, width, height)
+                          drawInBG: Boolean) {
+        TrackUIUtil.drawVerticalAxis(g, "The Marsians", conf[SCALES].single(), drawInBG,
+                                     width, height)
     }
 
-    public override fun computeScale(model: SingleLocationBrowserModel,
-                                     conf: Storage): List<TrackView.Scale> {
+    override fun computeScales(model: SingleLocationBrowserModel,
+                               conf: Storage): List<Scale> {
         val summaries = bbf.summarize(model.chromosomeRange, numBins)
         val max = Math.ceil(summaries.map { it.sum }.max()!!)
-        return listOf(TrackView.Scale(0.0, max))
+        return listOf(Scale(0.0, max))
     }
 }
 

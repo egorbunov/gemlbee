@@ -176,7 +176,7 @@ abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
         return strand.choose(0, plotHeight + VERTICAL_SPACER).to(plotHeight)
     }
 
-    override fun computeScale(model: SingleLocationBrowserModel, conf: Storage): List<Scale> {
+    override fun computeScales(model: SingleLocationBrowserModel, conf: Storage): List<Scale> {
         val strands = if (strandedData) Strand.values() else arrayOf(Strand.PLUS)
 
         val minMax = ArrayList<Scale>()
@@ -217,7 +217,7 @@ abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
 
         val pointData = conf[TRACK_DATA][layer, strand]
 
-        normalize(pointData, conf[TrackView.TRACK_SCALE].first(), renderer).forEachIndexed { i, normValue ->
+        normalize(pointData, conf[TrackView.SCALES].first(), renderer).forEachIndexed { i, normValue ->
             val startX = i
             val endX = i + 1
 
@@ -276,15 +276,14 @@ abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
 
     protected open fun axisPresentableValue(value: Double): Double = value
 
-    override fun drawAxis(g: Graphics,
+    override fun drawAxis(g: Graphics, conf: Storage,
                           width: Int, height: Int,
-                          drawInBG: Boolean,
-                          scales: List<TrackView.Scale>) {
-
+                          drawInBG: Boolean) {
+        val scales = conf[SCALES]
         val rendererScale = scales[0].let { if (it.isInfinite()) Scale(0.0, 0.0) else it }
 
         val presentableScale = Scale(axisPresentableValue(rendererScale.min),
-                axisPresentableValue(rendererScale.max));
+                                     axisPresentableValue(rendererScale.max));
         if (strandedData) {
             // should be first minus, than plus
             listOf(Strand.MINUS, Strand.PLUS).forEach { strand ->
