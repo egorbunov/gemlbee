@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.bio.util.Lexeme;
+import org.jetbrains.bio.util.Match;
 import org.jetbrains.bio.util.Tokenizer;
 
 import java.util.Collection;
@@ -34,8 +35,7 @@ public class PredicateParser {
 
   public static final Set<Lexeme> KEYWORDS = ImmutableSet.of(NOT, AND, OR, LPAR, RPAR, IMPL, TRUE, FALSE);
 
-  public static <T> Predicate<T> parse(String text, final Function<String, Predicate<T>> factory) {
-    text = text.replaceAll(" ", "");
+  public static <T> Predicate<T> parse(final String text, final Function<String, Predicate<T>> factory) {
     final Tokenizer tokenizer = new Tokenizer(text, KEYWORDS);
     return parse(tokenizer, factory);
   }
@@ -118,11 +118,11 @@ public class PredicateParser {
 
     if (!KEYWORDS.contains(lexeme)) {
       // Lookahead
-      for (int l = tokenizer.matchLength();
-           tokenizer.getTokenOffset() + tokenizer.matchLength() <= tokenizer.getText().length(); l++) {
-        final Predicate<T> predicate =
-            factory.apply(tokenizer.getText().substring(tokenizer.getTokenOffset(), tokenizer.getTokenOffset() + l));
+      for (int l = tokenizer.matchEnd(); l <= tokenizer.getText().length(); l++) {
+        final String lookahead = tokenizer.getText().substring(tokenizer.getTokenOffset(), l).trim();
+        final Predicate<T> predicate = factory.apply(lookahead);
         if (predicate != null) {
+          tokenizer.lookahead(new Match(new Lexeme(lookahead), tokenizer.getTokenOffset(), l));
           tokenizer.next();
           return predicate;
         }
@@ -141,7 +141,7 @@ public class PredicateParser {
    * NOTE it removes all the spaces, which is important for parsing
    */
   public static <T> Function<String, Predicate<T>> namesFunction(final Collection<Predicate<T>> predicates) {
-    return predicates.parallelStream().collect(Collectors.toMap(p -> p.getName().replaceAll(" ", ""), p -> p))::get;
+    return predicates.parallelStream().collect(Collectors.toMap(Predicate::getName, p -> p))::get;
   }
 
 }

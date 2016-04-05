@@ -6,8 +6,8 @@ import com.google.common.primitives.Ints
 /**
  * Simple match event for [Tokenizer] and [Lexeme].
  */
-data class Match(val lexeme: Lexeme, val offset: Int, val length: Int) : Comparable<Match> {
-    override fun compareTo(other: Match): Int = Ints.compare(offset, other.offset)
+data class Match(val lexeme: Lexeme, val start: Int, val end: Int) : Comparable<Match> {
+    override fun compareTo(other: Match): Int = Ints.compare(start, other.start)
 }
 
 open class Lexeme constructor(val token: String) {
@@ -15,7 +15,7 @@ open class Lexeme constructor(val token: String) {
 
     open fun locate(text: String, offset: Int): Match? {
         val indexOf = text.indexOf(token, offset)
-        return if (indexOf != -1) Match(this, indexOf, token.length) else null
+        return if (indexOf != -1) Match(this, indexOf, indexOf + token.length) else null
     }
 
     override fun equals(other: Any?): Boolean {
@@ -33,7 +33,7 @@ open class Lexeme constructor(val token: String) {
 class RegexLexeme(regex: String) : Lexeme(regex) {
     override fun locate(text: String, offset: Int): Match? {
         val matchResult = Regex(token).find(text, offset) ?: return null
-        return Match(this, matchResult.range.start, matchResult.range.endInclusive - matchResult.range.start + 1)
+        return Match(this, matchResult.range.start, matchResult.range.endInclusive + 1)
     }
 }
 
@@ -42,10 +42,12 @@ class Tokenizer(val text: String, val keywords: Set<Lexeme>) {
     var match: Match? = null
     var tokenOffset: Int = 0
 
-    fun matchLength(): Int {
+    fun matchEnd(): Int {
         check(match != null) { "Nothing matched!" }
-        return match!!.length
+        return match!!.end
     }
+
+    fun atEnd() = tokenOffset == text.length
 
     /**
      * Fetches next lexeme among keywords given or returns text, wrapped in [Lexeme] instance.
@@ -55,7 +57,7 @@ class Tokenizer(val text: String, val keywords: Set<Lexeme>) {
             return match!!.lexeme
         }
         // End of text reached
-        if (tokenOffset == text.length) {
+        if (atEnd()) {
             return null
         }
         val keyword = keywords.map {
@@ -64,16 +66,24 @@ class Tokenizer(val text: String, val keywords: Set<Lexeme>) {
                 .filterNotNull()
                 .sorted()
                 .firstOrNull()
+        // No more keywords
         if (keyword == null) {
-            match = Match(Lexeme(text.substring(tokenOffset)), tokenOffset, text.length - tokenOffset)
+            // Trailing whitespace
+            val token = text.substring(tokenOffset).trim()
+            if (token.isEmpty()) {
+                tokenOffset = text.length
+                match = null
+            }
+            match = Match(Lexeme(token), tokenOffset, text.length)
         } else {
             // If keyword starts on offset, return it, otherwise return lexeme with text
-            if (keyword.offset == tokenOffset)
+            if (keyword.start == tokenOffset || text.substring(tokenOffset, keyword.start).isBlank())
                 match = keyword
 
             else
-                match = Match(Lexeme(text.substring(tokenOffset, keyword.offset)),
-                        tokenOffset, keyword.offset - tokenOffset)
+            // Text before next lexeme
+                match = Match(Lexeme(text.substring(tokenOffset, keyword.start).trim()),
+                        tokenOffset, keyword.start)
         }
         return match!!.lexeme
     }
@@ -83,10 +93,18 @@ class Tokenizer(val text: String, val keywords: Set<Lexeme>) {
      */
     fun next(): Lexeme? {
         if (match != null) {
-            tokenOffset += match!!.length
+            tokenOffset = match!!.end
             match = null
         }
         return fetch()
+    }
+
+    /**
+     * Enforces match
+     */
+    fun lookahead(match: Match) {
+        tokenOffset = match.start
+        this.match = match
     }
 
     /**
@@ -100,7 +118,7 @@ class Tokenizer(val text: String, val keywords: Set<Lexeme>) {
 
     fun checkEnd() {
         // Check everything is parsed
-        check(tokenOffset == text.length) { "Not all the params text was parsed $this" }
+        check(atEnd()) { "Not all the params text was parsed $this" }
     }
 
     override fun toString(): String = "Text: $text; Offset: $tokenOffset; Text at offset: ${text.substring(tokenOffset)}; Match: $match"
