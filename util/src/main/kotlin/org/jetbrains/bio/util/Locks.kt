@@ -48,7 +48,7 @@ object LockManager {
     }
 }
 
-class ManagedLocker(private val lock: Lock) : ForkJoinPool.ManagedBlocker {
+private class ManagedLocker(private val lock: Lock) : ForkJoinPool.ManagedBlocker {
     private var hasLock = false
 
     override fun block(): Boolean {
