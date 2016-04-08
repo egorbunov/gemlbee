@@ -32,7 +32,7 @@ class DataConfig(
          */
         val ruleMinSupport: Int = DataConfig.DEFAULT_RULE_MIN_SUPPORT,
         val ruleMinConviction: Double = DataConfig.DEFAULT_RULE_MIN_CONVICTION,
-        val ruleMaxComplexity: Double = DataConfig.DEFAULT_RULE_MAX_COMPLEXITY,
+        val ruleMaxComplexity: Int = DataConfig.DEFAULT_RULE_MAX_COMPLEXITY,
         val ruleTop: Int = DataConfig.DEFAULT_RULE_TOP,
         val ruleOutput: Int = DataConfig.DEFAULT_RULE_OUTPUT) {
 
@@ -47,7 +47,7 @@ class DataConfig(
         proxy.tracks.putAll(tracks.wrap())
 
         // Once again Collections#SingletonList issue in `yamlbeans`
-        proxy.poi = poi.list.toMutableList()
+        proxy.poi = poi.patterns.toMutableList()
 
         // Rules mining extra params
         proxy.rule_min_support = ruleMinSupport
@@ -92,11 +92,10 @@ class DataConfig(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other?.javaClass != javaClass) return false
-        other as DataConfig
         val writer = StringWriter()
         save(writer)
         val otherWriter = StringWriter()
-        other.save(otherWriter)
+        (other as DataConfig).save(otherWriter)
         return writer.toString() == otherWriter.toString()
     }
 
@@ -111,7 +110,7 @@ class DataConfig(
 
         val DEFAULT_RULE_MIN_SUPPORT: Int = 0
         val DEFAULT_RULE_MIN_CONVICTION: Double = 0.0
-        val DEFAULT_RULE_MAX_COMPLEXITY: Double = Double.POSITIVE_INFINITY
+        val DEFAULT_RULE_MAX_COMPLEXITY: Int = 10
         val DEFAULT_RULE_TOP: Int = 1
         val DEFAULT_RULE_OUTPUT: Int = 1
 
@@ -137,19 +136,19 @@ Markup will be downloaded automatically if doesn't exist. Example:
 
 
         val RULE_MIN_SUPPORT_DESCRIPTION = """rule_min_support:
-If given limits min rule support of generated rules."""
+If given limits min rule support of generated rules. Default: $DEFAULT_RULE_MIN_SUPPORT"""
 
         val RULE_MAX_COMPLEXITY_DESCRIPTION = """rule_max_complexity:
-If given limits max complexity of generated rules."""
+If given limits max complexity of generated rules. Default: $DEFAULT_RULE_MAX_COMPLEXITY"""
 
         val RULE_MIN_CONVICTION_DESCRIPTION = """rule_min_conviction:
-If given limits min conviction of generated rules."""
+If given limits min conviction of generated rules. Default: $DEFAULT_RULE_MIN_CONVICTION"""
 
         val RULE_TOP_DESCRIPTION = """rule_top:
-If given configures rule mining algorithm precision, i.e. guaranteed top for each target."""
+If given configures rule mining algorithm precision, i.e. guaranteed top for each target. Default: $DEFAULT_RULE_TOP"""
 
         val RULE_OUT_DESCRIPTION = """rule_output:
-If given configures number of rules to output for each target."""
+If given configures number of rules to output for each target. Default: $DEFAULT_RULE_OUTPUT"""
 
         val TRACKS_DESCRIPTION = """Tracks:
 Each condition is allowed to have multiple replicates. Replicates
@@ -191,9 +190,9 @@ $SUPPORTED_FILE_FORMATS
 ---
 ${POI.DESCRIPTION}
 ---
-$RULE_MIN_SUPPORT_DESCRIPTION
----
 $RULE_MIN_CONVICTION_DESCRIPTION
+---
+$RULE_MIN_SUPPORT_DESCRIPTION
 ---
 $RULE_MAX_COMPLEXITY_DESCRIPTION
 ---
@@ -238,7 +237,7 @@ $RULE_OUT_DESCRIPTION"""
             /**
              * Additional config for [RulesExperiment], etc.
              */
-            @JvmField var rule_max_complexity: Double = DataConfig.DEFAULT_RULE_MAX_COMPLEXITY
+            @JvmField var rule_max_complexity: Int = DataConfig.DEFAULT_RULE_MAX_COMPLEXITY
             @JvmField var rule_min_support: Int = DataConfig.DEFAULT_RULE_MIN_SUPPORT
             @JvmField var rule_min_conviction: Double = DataConfig.DEFAULT_RULE_MIN_CONVICTION
             @JvmField var rule_top: Int = DataConfig.DEFAULT_RULE_TOP
@@ -330,7 +329,7 @@ private fun DataSet.collect(genomeQuery: GenomeQuery): LinkedHashMap<Pair<String
 
     if (this is TranscriptomeDataSet) {
         val genome = genomeQuery.genome
-        for (cellId in getCellIds(DataType.TRANSCRIPTOME)) {
+        for (cellId in getCellIds(DataType.TRANSCRIPTION)) {
             val replicates = getTranscriptomeReplicates(cellId).map { replicate ->
                 val fastqReads = getTranscriptomeQuery(genome, cellId, replicate).fastqReads
                 val parents = fastqReads.asSequence().map { it.parent }.distinct().toList()
@@ -341,25 +340,25 @@ private fun DataSet.collect(genomeQuery: GenomeQuery): LinkedHashMap<Pair<String
             if (replicates.isNotEmpty()) {
                 if (replicates.size == 1) {
                     // Do not use labels in case of single replicate
-                    tracks[DataType.TRANSCRIPTOME.id to cellId] = Section.Implicit(replicates.values.toList())
+                    tracks[DataType.TRANSCRIPTION.id to cellId] = Section.Implicit(replicates.values.toList())
                 } else {
-                    tracks[DataType.TRANSCRIPTOME.id to cellId] = Section.Labeled(replicates)
+                    tracks[DataType.TRANSCRIPTION.id to cellId] = Section.Labeled(replicates)
                 }
             }
         }
     }
 
     if (this is MethylomeDataSet) {
-        for (cellId in getCellIds(DataType.METHYLOME)) {
+        for (cellId in getCellIds(DataType.METHYLATION)) {
             val replicates = getMethylomeReplicates(cellId).map { replicate ->
                 replicate to getMethylomePath(genomeQuery, cellId, replicate)
             }.toMap()
             if (replicates.isNotEmpty()) {
                 if (replicates.size == 1) {
                     // Do not use labels in case of single replicate
-                    tracks[DataType.METHYLOME.id to cellId] = Section.Implicit(replicates.values.toList())
+                    tracks[DataType.METHYLATION.id to cellId] = Section.Implicit(replicates.values.toList())
                 } else {
-                    tracks[DataType.METHYLOME.id to cellId] = Section.Labeled(replicates)
+                    tracks[DataType.METHYLATION.id to cellId] = Section.Labeled(replicates)
                 }
             }
         }

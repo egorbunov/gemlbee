@@ -141,7 +141,7 @@ class RepeatsQuery(private val repeatClass: String? = null) :
 
 class NonRepeatsQuery : LocusQuery<Chromosome>(LocusType.NON_REPEATS) {
     override fun process(chromosome: Chromosome): Collection<Location> {
-        val genomeQuery = GenomeQuery(chromosome.genome.build)
+        val genomeQuery = GenomeQuery(chromosome.genome.build, chromosome.name)
         val repeats = locationList(genomeQuery, chromosome.repeats.map { it.location })
 
         return Strand.values().flatMap {
@@ -173,26 +173,26 @@ abstract class LocusQuery<Input> protected constructor(protected val locusType: 
          * TSS[-2000..2000]
          * TSS[{-2000,-1000,500}..{0,1000,500}]
          */
-        fun parse(locus: String): List<LocusQuery<Gene>> {
+        fun parse(pattern: String): List<LocusQuery<Gene>> {
             val delimiter = RegexLexeme("[_;]|\\.\\.")
             val lBracket = Lexeme("[")
             val rBracket = Lexeme("]")
             val KEYWORDS = setOf(delimiter, lBracket, rBracket, Tokenizer.LBRACE, Tokenizer.RBRACE, Tokenizer.COMMA)
-            if (locus == POI.ALL) {
+            if (pattern == POI.ALL) {
                 return ImportantGenesAndLoci.REGULATORY
             }
             // Empty case, no params
-            val locusType = if ("genes" == locus.toLowerCase()) {
+            val locusType = if ("genes" == pattern.toLowerCase()) {
                 LocusType.TSS_GENE_TES
             } else {
-                LocusType.of(locus.toLowerCase())
+                LocusType.of(pattern.toLowerCase())
             }
             if (locusType is LocusType.GeneType) {
                 return listOf(locusType.createQuery())
             }
             // Parse width or params
-            if (locus.startsWith(LocusType.TSS.toString()) || locus.startsWith(LocusType.TES.toString())) {
-                var tokenizer = Tokenizer(locus.substring(3), KEYWORDS)
+            if (pattern.startsWith(LocusType.TSS.toString()) || pattern.startsWith(LocusType.TES.toString())) {
+                var tokenizer = Tokenizer(pattern.substring(3), KEYWORDS)
                 val bracketsFound = tokenizer.fetch() == lBracket
                 if (bracketsFound) {
                     tokenizer.next()
@@ -210,12 +210,12 @@ abstract class LocusQuery<Input> protected constructor(protected val locusType: 
 
                 // Only width configured
                 if (ends == null) {
-                    when (locus.subSequence(0, 3)) {
+                    when (pattern.subSequence(0, 3)) {
                         "tss" -> return values.map { TssQuery(-it, it) }
                         "tes" -> return values.map { TesQuery(-it, it) }
                     }
                 } else {
-                    when (locus.subSequence(0, 3)) {
+                    when (pattern.subSequence(0, 3)) {
                         "tss" -> return values.flatMap { start ->
                             ends!!.map { end -> TssQuery(start, end) }
                         }
@@ -225,7 +225,7 @@ abstract class LocusQuery<Input> protected constructor(protected val locusType: 
                     }
                 }
             }
-            POI.LOG.warn("Failed to parse locus: $locus")
+            POI.LOG.warn("Failed to parse locus: $pattern")
             return emptyList()
         }
     }

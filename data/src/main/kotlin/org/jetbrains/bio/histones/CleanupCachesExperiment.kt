@@ -41,8 +41,8 @@ object CleanupCachesExperiment {
             logPath.bufferedWriter().use { bf ->
                 problemFiles.forEachIndexed { i, path ->
                     bf.write("  %3d: ${makeRelativeTo(path, cachesRootStr)}\n".format(i))
-                    bf.write("      size:     ${path.size.asFileSize()}\n")
-                    bf.write("      modified: ${path.toFile().lastModified().asDate()}\n")
+                    bf.write("      size:     ${path.size}\n")
+                    bf.write("      modified: ${path.lastModifiedTime}\n")
                     bf.newLine()
                 }
             }
@@ -65,7 +65,7 @@ object CleanupCachesExperiment {
         files.forEachIndexed { i, path ->
             println(">>> $i of $size: ${path.toAbsolutePath()}")
 
-            if (path.size != 0L) {
+            if (path.size.toBytes() != 0L) {
                 println("     [OK] ${path.fileName}")
             } else {
                 problemFiles.add(path)

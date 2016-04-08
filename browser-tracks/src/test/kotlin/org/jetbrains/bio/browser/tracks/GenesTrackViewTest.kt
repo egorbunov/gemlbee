@@ -10,7 +10,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GenesTrackViewTest {
-    val chr = Chromosome.get("to1", "chr1")
+    val chr = Chromosome("to1", "chr1")
 
     @Test fun annotate_CDS_noExons() {
         val cds = Range(100, 200)

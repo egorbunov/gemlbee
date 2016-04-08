@@ -2,14 +2,11 @@ package org.jetbrains.bio.browser.desktop;
 
 import com.jidesoft.swing.AutoCompletion;
 import kotlin.Pair;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.bio.browser.model.BrowserModel;
 import org.jetbrains.bio.browser.model.ModelListener;
-import org.jetbrains.bio.browser.util.TrackUIUtil;
 import org.jetbrains.bio.genome.query.GenomeQuery;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
@@ -17,20 +14,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
 
 /**
  * @author Evgeny.Kurbatsky
  */
 public class SearchPanel extends JPanel {
-  private static final Logger LOG = Logger.getLogger(SearchPanel.class);
-
   private final DesktopGenomeBrowser myBrowser;
 
   private final JTextComponent myPositionComponent;
   private final ModelListener myModelListener;
-
 
   public SearchPanel(final DesktopGenomeBrowser browser) {
     myBrowser = browser;
@@ -54,23 +46,6 @@ public class SearchPanel extends JPanel {
       }
     });
     add(goButton);
-
-    // Back forward icons are downloaded from here: http://www.myiconfinder.com/
-    try {
-      final BufferedImage backImage = ImageIO.read(SearchPanel.class.getResource("/back.png"));
-      final BufferedImage forwardImage = ImageIO.read(SearchPanel.class.getResource("/forward.png"));
-      final int h = TrackUIUtil.DEFAULT_FONT_HEIGHT - 2;
-      final JButton backButton = new JButton(new ImageIcon(backImage.getScaledInstance(h, h, 0)));
-      backButton.setMaximumSize(new Dimension(h, h));
-      backButton.addActionListener(e -> myBrowser.getController().undo());
-      add(backButton);
-      final JButton forwardButton = new JButton(new ImageIcon(forwardImage.getScaledInstance(h, h, 0)));
-      forwardButton.setMaximumSize(new Dimension(h, h));
-      forwardButton.addActionListener(e -> myBrowser.getController().redo());
-      add(forwardButton);
-    } catch (IOException e) {
-      LOG.error(e);
-    }
 
     myModelListener = () -> setLocationText(myBrowser.getModel().toString());
     setBrowserModel(browser.getModel());

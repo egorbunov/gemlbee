@@ -5,8 +5,10 @@ import kotlin.test.assertNotNull
 
 class DataSetTest {
     @Test fun toDataType() {
-        assertNotNull("RNA-Seq".toDataType())
-        assertNotNull("RNA-SEQ".toDataType())
+        assertNotNull("Transcription".toDataType())
+        assertNotNull("transcription".toDataType())
+        assertNotNull("Methylation".toDataType())
+        assertNotNull("methylation".toDataType())
         ChipSeqTarget.values().forEach { assertNotNull(it.name.toDataType()) }
     }
 }

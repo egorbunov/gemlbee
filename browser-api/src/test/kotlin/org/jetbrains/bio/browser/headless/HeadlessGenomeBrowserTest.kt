@@ -30,7 +30,7 @@ class HeavyTrackView(private val cb: () -> Unit) : TrackView("heavy") {
 class HeadlessGenomeBrowserTest {
     @Test fun paintCanBeCancelled() {
         val genomeQuery = GenomeQuery("to1")
-        val chromosome = Chromosome["to1", "chr1"]
+        val chromosome = Chromosome("to1", "chr1")
         val references = listOf(SimpleLocRef(Location(0, 1000, chromosome, Strand.PLUS)),
                                 SimpleLocRef(Location(100, 2000, chromosome, Strand.MINUS)))
 

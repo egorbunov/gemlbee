@@ -68,6 +68,10 @@ class GeMLBeeCLATest {
         checkTrack("Created Kallisto track view for /tmp/foo.fastq.gz", "/tmp/foo.fastq.gz")
     }
 
+    @Test fun addTrack_Wig() {
+        checkTrack("Created Wig track view for /tmp/foo.wig", "/tmp/foo.wig")
+    }
+
     @Test fun addTrack_FastqDir() {
         withTempDirectory("tmp") { tmpDir ->
             (tmpDir / "foo.fastq").touch()
@@ -103,7 +107,7 @@ class GeMLBeeCLATest {
         val namedLocs = listOf("chr1", "chr2").flatMap { chr ->
             randomGenes(chr, 2, 2).flatMap {
                 it.map { gene ->
-                    gene.getName(GeneAliasType.GENE_SYMBOL) to gene.location
+                    gene.names[GeneAliasType.GENE_SYMBOL]!! to gene.location
                 }
             }
         }
@@ -135,7 +139,7 @@ class GeMLBeeCLATest {
             randomGenes(chr, 2, 2).flatMap {
                 it.map { gene ->
                     val loc = gene.location
-                    gene.getName(GeneAliasType.GENE_SYMBOL) to loc.copy(endOffset = loc.startOffset + 20)
+                    gene.names[GeneAliasType.GENE_SYMBOL]!! to loc.copy(endOffset = loc.startOffset + 20)
                 }
             }
         }
@@ -170,7 +174,7 @@ class GeMLBeeCLATest {
             val genes = randomGenes(chr, 2, 2)
             genes.flatMap {
                 it.map { gene ->
-                    val name = gene.getName(GeneAliasType.GENE_SYMBOL).reversed()
+                    val name = gene.names[GeneAliasType.GENE_SYMBOL]!!.reversed()
                     names.add(name)
                     name to gene.location
                 }
@@ -202,7 +206,7 @@ class GeMLBeeCLATest {
 
 
     @Test fun namedLocationRef() {
-        val loc = Location(0, 10, Chromosome["to1", "chr1"], Strand.PLUS)
+        val loc = Location(0, 10, Chromosome.invoke("to1", "chr1"), Strand.PLUS)
         val locRef = NamedLocRef("foo", loc)
         assertEquals(loc, locRef.location)
         assertEquals("foo", locRef.name)
@@ -228,7 +232,7 @@ class GeMLBeeCLATest {
     private fun randomGenes(chrName: String,
                             countPlus: Int,
                             countMinus: Int): List<List<Gene>> {
-        val chr = Chromosome["to1", chrName]
+        val chr = Chromosome.invoke("to1", chrName)
 
         val rand = Random()
 

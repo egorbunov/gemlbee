@@ -1,7 +1,6 @@
 package org.jetbrains.bio.methylome
 
 import com.google.common.base.Joiner
-import org.apache.log4j.Logger
 import org.jetbrains.bio.ext.*
 import org.jetbrains.bio.genome.query.CachingInputQuery
 import org.jetbrains.bio.genome.query.GenomeQuery
@@ -15,13 +14,11 @@ import java.nio.file.Path
  */
 abstract class MethylomeQuery protected constructor(
         val genomeQuery: GenomeQuery,
-        protected  val dataSetId: String,
+        protected val dataSetId: String,
         val cellId: String,
         private vararg val properties: String)
 :
         CachingInputQuery<Methylome>() {
-
-    private val LOG = Logger.getLogger(MethylomeQuery::class.java)
 
     /** Reads a methylome using an **unrestricted** i.e. full [GenomeQuery]. */
     @Throws(IOException::class)

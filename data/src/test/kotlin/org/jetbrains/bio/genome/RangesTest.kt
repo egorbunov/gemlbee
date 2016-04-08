@@ -49,7 +49,7 @@ class RangeTest {
 }
 
 class LocationTest {
-    private var chromosome = Chromosome["to1", "chr1"]
+    private var chromosome = Chromosome("to1", "chr1")
 
     @Test fun testGetLength_EmptyLocation() {
         assertEquals(0, Location(0, 0, chromosome, Strand.PLUS).length())
@@ -142,7 +142,7 @@ class LocationTest {
         val location3 = Location(0, 100, chromosome, Strand.PLUS)
         assertEquals(0, location1.compareTo(location3))
 
-        val location4 = Location(0, 100, Chromosome["to1", "chr2"], Strand.PLUS)
+        val location4 = Location(0, 100, Chromosome("to1", "chr2"), Strand.PLUS)
         assertEquals(-1, location1.compareTo(location4))
         assertEquals(1, location4.compareTo(location1))
     }

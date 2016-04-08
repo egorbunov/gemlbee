@@ -1,6 +1,7 @@
 package org.jetbrains.bio.data
 
 import org.jetbrains.bio.ext.div
+import org.jetbrains.bio.ext.glob
 import org.jetbrains.bio.genome.CellId
 import org.jetbrains.bio.genome.Genome
 import org.jetbrains.bio.genome.query.GenomeQuery
@@ -12,16 +13,16 @@ import java.nio.file.Path
 import java.util.*
 
 enum class DataType(val id: String) {
-    METHYLOME("meth"),
+    METHYLATION("methylation"),
     CHIP_SEQ("chip-seq"),
-    TRANSCRIPTOME("rna-seq");
+    TRANSCRIPTION("transcription");
 
     companion object {
         internal val mapper: Map<String, DataType> by lazy() {
             val acc = HashMap<String, DataType>()
             ChipSeqTarget.values().forEach { acc[it.name.toLowerCase()] = CHIP_SEQ }
-            acc[METHYLOME.id] = METHYLOME
-            acc[TRANSCRIPTOME.id] = TRANSCRIPTOME
+            acc[METHYLATION.id] = METHYLATION
+            acc[TRANSCRIPTION.id] = TRANSCRIPTION
             acc
         }
     }
@@ -46,18 +47,14 @@ fun String.toChipSeqTarget(): ChipSeqTarget {
     else ChipSeqTarget.valueOf(this)
 }
 
-
-
 abstract class DataSet protected constructor(
         /**
          * Experiment unique id, e.g. GEO acc. number. If not given
          * class simple name will be used.
          */
         id: String?,
-        /** Supported genomes. */
-        genome: Genome, vararg rest: Genome) {
-
-    val genomes = listOf(genome, *rest)
+        /** Supported genome. */
+        val genome: Genome) {
 
     val id = id ?: javaClass.simpleName
     var description = "<no description>"
@@ -75,11 +72,11 @@ abstract class DataSet protected constructor(
             this === other -> true
             other !is DataSet -> false
             else -> id == other.id && description == other.description &&
-                    genomes == other.genomes
+                    genome == other.genome
         }
     }
 
-    override fun hashCode() = Objects.hash(id, description, genomes)
+    override fun hashCode() = Objects.hash(id, description, genome)
 }
 
 /**
@@ -87,8 +84,7 @@ abstract class DataSet protected constructor(
  * accession number. E.g. if the class wraps data from GSE16256
  * it must be named `GSE16256`.
  */
-abstract class GeoDataSet protected constructor(genome: Genome, vararg rest: Genome) :
-        DataSet(null, genome, *rest) {
+abstract class GeoDataSet protected constructor(genome: Genome) : DataSet(null, genome) {
 
     init {
         check(id.matches("GSE[0-9]+".toRegex())) {
@@ -149,7 +145,7 @@ interface MethylomeDataSet : DataSetForwarder {
 
     /** Returns a path to the binary version of methylome. */
     fun getMethylomePath(genomeQuery: GenomeQuery, cellId: CellId,
-                         replicate: String = ""): Path = TODO()
+                         replicate: String = ""): Path
 
     fun getMethylomeQuery(genomeQuery: GenomeQuery, cellId: CellId,
                           replicate: String = ""): MethylomeQuery {
@@ -157,6 +153,28 @@ interface MethylomeDataSet : DataSetForwarder {
                 getMethylomePath(genomeQuery, cellId, replicate),
                 id)
     }
+}
+
+/**
+ * BS-Seq dataset designed for GEO gsm data aligned using sara naming conventions
+ */
+interface SaraMethylomeDataSet : MethylomeDataSet {
+    val dataPath: Path
+
+    fun getGsmId(cellId: CellId, replicate: String): String
+
+    override fun getMethylomePath(genomeQuery: GenomeQuery, cellId: CellId,
+                                  replicate: String): Path {
+        val gsm = getGsmId(cellId, replicate)
+        val pattern = "BSSeq_*_${gsm}_${genomeQuery.build}.bam"
+        val matches = (dataPath / gsm).glob(pattern)
+        check(matches.size == 1) {
+            "Failed to locate unique BAM file for $pattern. Matches: $matches."
+        }
+
+        return matches.first()
+    }
+
 }
 
 /** A target in the ChIP-seq protocol. */

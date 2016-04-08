@@ -16,7 +16,7 @@ class HeaderTest {
 
     @Test fun testHeaderPosY() {
         val singleModel = SingleLocationBrowserModel(GenomeQuery("to1"))
-        val loc = Location(0, 1000, Chromosome.get("to1", "chr1"), Strand.PLUS)
+        val loc = Location(0, 1000, Chromosome("to1", "chr1"), Strand.PLUS)
         val multiModel = MultipleLocationsBrowserModel.create(
                 "foo",
                 { gq -> listOf(SimpleLocRef(loc)) },

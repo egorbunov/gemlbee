@@ -24,7 +24,7 @@ enum class GeneClass(val id: String, val description: String,
     NON_CODING("non-coding", "non-coding genes", { !it.isCoding }),
     ALL("all", "all genes", { true });
 
-    operator fun contains(gene: Gene): Boolean = predicate(gene)
+    operator fun contains(gene: Gene) = predicate(gene)
 }
 
 /**
@@ -46,13 +46,47 @@ enum class GeneAliasType {
 }
 
 /**
- * This is actually a transcript, not a gene.
+ * A zero-overhead [EnumMap] specialized to [GeneAliasType].
+ *
+ * Note that no container
+ *
+ * @author Sergei Lebedev
+ * @since 07/04/16
  */
+class GeneAliasMap internal constructor(private val gene: Gene) : Map<GeneAliasType, String> {
+    override val keys: Set<GeneAliasType> get() = setOf(*KEY_UNIVERSE)
+
+    override val values: Collection<String> get() = KEY_UNIVERSE.map { get(it) }
+
+    override val entries: Set<Map.Entry<GeneAliasType, String>> get() {
+        return KEY_UNIVERSE.mapTo(LinkedHashSet()) { Maps.immutableEntry(it, get(it)) }
+    }
+
+    override fun get(key: GeneAliasType) = when (key) {
+        GeneAliasType.GENE_SYMBOL -> gene.symbol
+        GeneAliasType.REF_SEQ_ID  -> gene.refSeqId
+        GeneAliasType.ENSEMBL_ID  -> gene.ensemblId
+    }.toUpperCase()
+
+    override fun containsKey(key: GeneAliasType) = true
+
+    override fun containsValue(value: String) = value in values
+
+    override fun isEmpty() = false
+
+    override val size: Int get() = KEY_UNIVERSE.size
+
+    companion object {
+        private val KEY_UNIVERSE = GeneAliasType.values()
+    }
+}
+
+/** This is actually a transcript, not a gene. */
 class Gene(
         /** Ensembl transcript ID. */
-        ensemblId: String,
+        internal val ensemblId: String,
         /** RefSeq mRNA ID. */
-        refSeqId: String,
+        internal val refSeqId: String,
         /** Gene symbol associated with this transcript. */
         val symbol: String,
         /** Human-readable transcript description. */
@@ -61,33 +95,19 @@ class Gene(
         override val location: Location,
         /** Coding sequence range or `null` for non-coding transcripts. */
         private val cdsRange: Range?,
-        /**
-         * A list of exon ranges. Empty for non-coding transcripts.
-         *
-         * ArrayList is to make Gson reflection pickup [Range.ADAPTER].
-         * Using plain List fails because in Kotlin it's wildcarded.
-         */
-        private val exonRanges: ArrayList<Range>) : LocationAware {
-
-    val names: Map<GeneAliasType, String> = ImmutableMap.of(
-            GeneAliasType.ENSEMBL_ID, ensemblId.toUpperCase(),
-            GeneAliasType.GENE_SYMBOL, symbol.toUpperCase(),
-            GeneAliasType.REF_SEQ_ID, refSeqId.toUpperCase())
-
-    val chromosome: Chromosome get() = location.chromosome
-    val strand: Strand get() = location.strand
-    val sequence: String get() = location.sequence
+        /** A list of exon ranges. Empty for non-coding transcripts. */
+        private val exonRanges: List<Range>) : LocationAware {
 
     init {
         require(symbol.isNotEmpty()) { "missing gene symbol" }
     }
 
-    // Remove this method once we get rid of all the Java callers.
-    fun getName(geneAliasType: GeneAliasType): String {
-        return names[geneAliasType] ?: ""
-    }
+    val names: Map<GeneAliasType, String> get() = GeneAliasMap(this)
 
-    val isCoding: Boolean @JvmName("isCoding") get() = cdsRange != null
+    val chromosome: Chromosome get() = location.chromosome
+    val strand: Strand get() = location.strand
+
+    val isCoding: Boolean get() = cdsRange != null
 
     val cds: Location? get() = cdsRange?.on(chromosome)?.on(strand)
 
@@ -146,6 +166,14 @@ class Gene(
     override fun toString(): String {
         return "$symbol $location [exons: ${exons.size}, introns: ${introns.size}]"
     }
+
+    override fun equals(other: Any?) = when {
+        this === other -> true
+        other !is Gene -> false
+        else -> ensemblId == other.ensemblId
+    }
+
+    override fun hashCode() = ensemblId.hashCode()
 }
 
 /**
@@ -155,17 +183,15 @@ class Gene(
  * @since 21/05/14
  */
 object Genes {
-    private val GENES_CACHE = cache<Gene>()
+    private val CACHE = cache<Gene>()
 
     internal fun all(genome: Genome): ListMultimap<Chromosome, Gene> {
-        return GENES_CACHE.get(genome.build) {
-            val genesPath = genome.dataPath / "genes.json"
-
+        return CACHE.get(genome.build) {
+            val genesPath = genome.dataPath / "genes.json.gz"
             genesPath.checkOrRecalculate("Genes") { output ->
-                output.let { path ->
-                    download(genome.build, path)
-                }
+                output.let { download(genome.build, it) }
             }
+
             read(genesPath)
         }
     }
@@ -173,7 +199,6 @@ object Genes {
     /** Visible only for [TestOrganismDataGenerator]. */
     @JvmField val GSON = GsonBuilder()
             .registerTypeAdapter(Range::class.java, Range.ADAPTER)
-            .registerTypeAdapter(Chromosome::class.java, Chromosome.ADAPTER)
             .registerTypeAdapter(Location::class.java, Location.ADAPTER)
             .create()
 
@@ -208,11 +233,12 @@ object Genes {
             }
         }
 
-        val chromosomes = ChromosomeNamesMap.create(build)
+        val chromosomes = chromosomeMap(build)
         val genes = ArrayList<Gene>()
         mart.query(listOf("ensembl_transcript_id", "description",
                           "chromosome_name", "strand",
                           "transcript_start", "transcript_end",
+                          "cds_length",
                           "3_utr_start", "3_utr_end",
                           "5_utr_start", "5_utr_end")) { pipe ->
             val block = ArrayList<CSVRecord>(1)
@@ -227,32 +253,34 @@ object Genes {
 
                 val ensemblId = block["ensembl_transcript_id"]
                 val (refSeqId, geneSymbol) = aliasMap[ensemblId] ?: continue
-                val chromosome = chromosomes[block["chromosome_name"]] ?: continue
+                val chromosome = chromosomes["chr${block["chromosome_name"]}"] ?: continue
                 val strand = block["strand"].toInt().toStrand()
                 val location = Location(block["transcript_start"].toInt() - 1,
                                         block["transcript_end"].toInt(),
                                         chromosome, strand)
-                val cds = if (block["5_utr_start"].isEmpty() ||
-                              block["3_utr_start"].isEmpty()) {
-                    null
-                } else {
-                    when (strand) {
-                        Strand.PLUS  -> Range(block["5_utr_end"].toInt() - 1,
-                                              block["3_utr_start"].toInt())
-                        Strand.MINUS -> Range(block["3_utr_end"].toInt() - 1,
-                                              block["5_utr_start"].toInt())
+                val cds = when {
+                    block["cds_length"].isEmpty() -> null
+                    block["5_utr_start"].isEmpty() || block["3_utr_start"].isEmpty() -> {
+                        // Some transcripts don't have UTRs, in this case we use the
+                        // whole transcript as CDS. See e.g. ENSMUST00000081985 for mm9.
+                        location.toRange()
+                    }
+                    else -> {
+                        when (strand) {
+                            Strand.PLUS  -> Range(block["5_utr_end"].toInt() - 1,
+                                                  block["3_utr_start"].toInt())
+                            Strand.MINUS -> Range(block["3_utr_end"].toInt() - 1,
+                                                  block["5_utr_start"].toInt())
+                        }
                     }
                 }
 
                 genes.add(Gene(ensemblId, refSeqId, geneSymbol, block["description"],
-                               location, cds,
-                               exonMap[ensemblId].toCollection(ArrayList())))
+                               location, cds, exonMap[ensemblId].toList()))
             }
         }
 
         genesPath.bufferedWriter().use { GSON.toJson(genes, it) }
-
-        chromosomes.report("Genes");
     }
 }
 
@@ -264,10 +292,7 @@ private inline fun <T> PeekingIterator<T>.nextBlock(
     } while (hasNext() && transform(peek()) == transform(into.first()))
 }
 
-/*
-  Change visibility to private when https://youtrack.jetbrains.com/issue/KT-9779 will be fixed
- */
-operator fun List<CSVRecord>.get(field: String): String {
+private operator fun List<CSVRecord>.get(field: String): String {
     for (row in this) {
         val value = row[field]
         if (value.isNotEmpty()) {

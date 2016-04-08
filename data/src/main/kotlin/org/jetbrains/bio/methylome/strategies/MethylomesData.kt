@@ -13,8 +13,9 @@ class MethylomesData(chromosome: Chromosome,
                      private val methylomesPlus: List<DataFrame>,
                      private val methylomesMinus: List<DataFrame>) : McStatStrategy.Data(chromosome) {
 
-    operator fun get(strand: Strand, sampleId: Int): DataFrame =
-            (if (strand.isPlus()) methylomesPlus else methylomesMinus)[sampleId]
+    operator fun get(strand: Strand, sampleId: Int): DataFrame {
+        return (if (strand.isPlus()) methylomesPlus else methylomesMinus).get(sampleId)
+    }
 
     companion object {
         fun build(chr: Chromosome,

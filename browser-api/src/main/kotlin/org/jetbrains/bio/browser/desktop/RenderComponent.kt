@@ -140,7 +140,7 @@ class RenderComponent(val trackView: TrackView,
                                            browser.model.copy(), width, height,
                                            trackView,
                                            CancellableState.current(),
-                                           true, uiModel)
+                                           uiModel)
         } catch (e: Throwable) {
             LOG.error(e)
             val g2d = image.createAAGraphics()

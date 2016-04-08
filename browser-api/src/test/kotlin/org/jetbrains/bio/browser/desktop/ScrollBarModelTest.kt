@@ -14,8 +14,8 @@ import kotlin.test.assertTrue
 
 class ScrollBarModelTest {
     private var browserModel = SingleLocationBrowserModel(GenomeQuery("to1"))
-    private val chromosome1 = Chromosome["to1", "chr1"]
-    private val chromosome2 = Chromosome["to1", "chr2"]
+    private val chromosome1 = Chromosome("to1", "chr1")
+    private val chromosome2 = Chromosome("to1", "chr2")
     private lateinit var scrollBarModel: ScrollBarModel
     private val scrollBarChangedMarker = AtomicReference<Boolean>()
     private var listener = ChangeListener { scrollBarChangedMarker.set(true) }

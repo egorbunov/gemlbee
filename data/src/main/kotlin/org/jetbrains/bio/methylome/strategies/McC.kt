@@ -28,7 +28,7 @@ class McC(private val mcContextFilter: CytosineContext? = null) : McStatStrategy
         for (location in locations) {
             require(location.chromosome == samplesData.chromosome)
 
-            val mcDf = samplesData[location.strand, sampleId]
+            val mcDf = samplesData.get(location.strand, sampleId)
             val startOffset = location.startOffset
             val endOffset = location.endOffset
             val rows = MethylomeStats.binarySearch(mcDf, startOffset, endOffset)

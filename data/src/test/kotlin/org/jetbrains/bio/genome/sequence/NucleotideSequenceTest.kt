@@ -14,7 +14,7 @@ class NucleotideSequenceTest {
     }
 
     @Test fun testSubstringTestOrganism() {
-        val chromosome = Chromosome["to1", "chr1"]
+        val chromosome = Chromosome("to1", "chr1")
         val sequence = chromosome.sequence
         val from = sequence.length() / 3
         val to = sequence.length() - from

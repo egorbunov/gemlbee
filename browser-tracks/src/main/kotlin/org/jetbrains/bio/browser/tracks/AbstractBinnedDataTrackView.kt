@@ -1,7 +1,10 @@
 package org.jetbrains.bio.browser.tracks
 
 import org.apache.log4j.Logger
-import org.jetbrains.bio.big.*
+import org.jetbrains.bio.big.BigWigFile
+import org.jetbrains.bio.big.FixedStepSection
+import org.jetbrains.bio.big.VariableStepSection
+import org.jetbrains.bio.big.WigSection
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.ext.*
@@ -9,7 +12,6 @@ import org.jetbrains.bio.genome.Chromosome
 import org.jetbrains.bio.genome.Strand
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.jetbrains.bio.util.Configuration
-import java.awt.Color
 import java.awt.Component
 import java.awt.Dimension
 import java.nio.file.Path
@@ -63,8 +65,8 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
                         tasks.add(Callable {
                             val dataPath = getDataPath(layer, strand, binSize, genomeQuery)
                             dataPath.checkOrRecalculate(this.javaClass.simpleName) { output ->
-                                val genomeWigData = genomeQuery.get().stream().parallel().flatMap { chr ->
-                                    calcWigSections(layer, binSize, chr, strand).stream()
+                                val genomeWigData = genomeQuery.get().stream().parallel().map { chr ->
+                                    calcWigSection(layer, binSize, chr, strand)
                                 }.collectHack(Collectors.toList())
 
                                 output.let { path ->
@@ -83,28 +85,28 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
         }
     }
 
-    private fun calcWigSections(layer: Int, binSize: Int, chr: Chromosome, strand: Strand): List<WigSection> {
+    private fun calcWigSection(layer: Int, binSize: Int, chr: Chromosome, strand: Strand): WigSection {
         val binnedData = preprocess(layer, binSize, chr, strand)
 
         val chrName = chr.name
 
         // Sparse according to ignored values:
-        val hasIgnoredValues = binnedData.firstOrNull { ignoredValue(it) }?.let { true } ?: false
+        val hasIgnoredValues = binnedData.any { ignoredValue(it) }
 
-        return if (!hasIgnoredValues) {
-            // Fixed step
-            val section = FixedStepSection(chrName, 0, step = binSize, span = binSize)
-            binnedData.forEach { value -> section.add(value) }
-            listOf(section)
-        } else {
+        if (hasIgnoredValues) {
             // Variable step:
             val section = VariableStepSection(chrName, span = binSize);
             binnedData.forEachIndexed { i, value ->
                 if (!ignoredValue(value)) {
-                    section.set(i * binSize, value)
+                    section[i * binSize] = value
                 }
             }
-            listOf(section)
+            return section
+        } else {
+            // Fixed step
+            val section = FixedStepSection(chrName, 0, step = binSize, span = binSize)
+            binnedData.forEach { value -> section.add(value) }
+            return section
         }
 
     }
@@ -161,34 +163,5 @@ abstract class AbstractBinnedDataTrackView @JvmOverloads constructor(
 
     companion object {
         private val LOG = Logger.getLogger(AbstractBinnedDataTrackView::class.java)
-    }
-}
-
-/**
- * If range is less than bin size shows whole bin value, otherwise if range contain several bins
- * returns value of averaged bin in range
- */
-open class BinnedRenderer(val binSize: Int,
-                          color: Color = Color.BLACK) : ValueRenderer(color) {
-    override fun valueOf(pixelSummary: BigSummary, nanDefaultValue: Double): Double {
-        // When range intersects with bin, BigWig returns:
-        //   pixelSummary.sum = sum{i}[value_i * (intersection_i %)] =
-        //   = sum[value_i * (intersection_i/bin size)]
-        //
-        //   pixelSummary.count = sum{i}[intersection_i]
-        //
-        //   pixelSummary.sum / pixelSummary.count ~= avg value per 1 bp
-        //   (pixelSummary.sum / pixelSummary.count) * bin_size ~= avg value per bin
-
-        // Nucleotides in range with bins data intersection, may include more
-        // than one bin for small zoom levels
-        val intersectionCumSize = pixelSummary.count
-
-        return when {
-            intersectionCumSize == 0L || pixelSummary.sum.isNaN() -> nanDefaultValue
-        // * if shorter than one bin => show corresponding bin value
-        // * if covers several bins => avg bin value
-            else -> pixelSummary.sum * binSize / intersectionCumSize
-        }
     }
 }

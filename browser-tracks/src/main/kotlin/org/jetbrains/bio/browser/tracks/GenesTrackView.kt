@@ -26,6 +26,10 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
     override fun preprocess(genomeQuery: GenomeQuery) {
         val url = Mart.forBuild(genomeQuery.build).host
         title = "${GeneClass.ALL.description} ($url)"
+
+        for (chromosome in genomeQuery.get()) {
+            chromosome.genes
+        }
     }
 
     override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
@@ -158,18 +162,18 @@ class GenesTrackView : TrackView(GeneClass.ALL.description) {
                                     trackWidth: Int) {
 
         val desc = "${gene.description} (e:${gene.exons.size}, i:${gene.introns.size})"
-        val names = gene.names.values.filter { it.isNotEmpty() }.joinToString { it };
+        val names = gene.names.values.filter { it.isNotEmpty() }.joinToString { it }
 
         val fm = g.fontMetrics
         if (trackWidth >= Math.max(fm.stringWidth(names), fm.stringWidth(desc))) {
             //Full gene desc:
-            drawGeneLabel(g, desc, Color.GRAY, 0, linesCount - 2, true);
-            drawGeneLabel(g, names, Color.GRAY, 0, linesCount - 1, true);
+            drawGeneLabel(g, desc, Color.GRAY, 0, linesCount - 2, true)
+            drawGeneLabel(g, names, Color.GRAY, 0, linesCount - 1, true)
         } else {
             // Short desc
-            val geneId = gene.getName(GeneAliasType.ENSEMBL_ID);
+            val geneId = gene.names[GeneAliasType.ENSEMBL_ID] ?: ""
             if (trackWidth >= fm.stringWidth(geneId)) {
-                drawGeneLabel(g, geneId, Color.GRAY, 0, linesCount - 1, true);
+                drawGeneLabel(g, geneId, Color.GRAY, 0, linesCount - 1, true)
             }
             // else: no place for additional info
         }

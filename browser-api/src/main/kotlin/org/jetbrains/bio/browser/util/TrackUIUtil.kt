@@ -248,18 +248,28 @@ object TrackUIUtil {
         val stepSize = stepSize(regionLength)
 
         g.color = Color(104, 179, 255)
-        val leftMargin = 5
+        val margin = 5  // left and right margin
         val scaleLineY = height - 2
-        val right = leftMargin + Math.round(stepSize * 1.0 / regionLength * width).toInt()
+        val right = margin + Math.round(stepSize * 1.0 / regionLength * width).toInt()
 
         // Scale line
-        g.drawLine(leftMargin, scaleLineY, right, scaleLineY)
-        g.drawLine(leftMargin, scaleLineY - 2, leftMargin, scaleLineY + 2)
+        g.drawLine(margin, scaleLineY, right, scaleLineY)
+        g.drawLine(margin, scaleLineY - 2, margin, scaleLineY + 2)
         g.drawLine(right, scaleLineY - 2, right, scaleLineY + 2)
 
         // scale size
         val text = "${stepSize.asOffset()} of ${regionLength.asOffset()} bp"
-        g.drawString(text, leftMargin, scaleLineY - 4)
+        g.drawString(text, margin, scaleLineY - 4)
+
+        // show resolution: # bp in on pixel, helps to
+        // understand how many bins are merged in on pixel
+        val bpInPixel = regionLength / width
+        if (bpInPixel > 1) {
+            val scaleTextWidth = g.fontMetrics.stringWidth(text)
+
+            g.drawString("1 pixel ~ ${bpInPixel.asOffset()} bp",
+                         width - margin - scaleTextWidth, scaleLineY - 4)
+        }
     }
 
     @JvmStatic fun drawOffsets(g: Graphics, range: Range, width: Int) {

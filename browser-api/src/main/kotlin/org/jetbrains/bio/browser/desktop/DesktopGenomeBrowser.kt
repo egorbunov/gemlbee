@@ -13,6 +13,7 @@ import org.jetbrains.bio.browser.tracks.TrackView
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.jetbrains.bio.util.Logs
 import java.awt.Dimension
+import java.awt.Point
 import java.awt.Toolkit
 import javax.swing.*
 
@@ -72,6 +73,13 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
         get() = mainPanel.trackListComponent.trackListController
 
     fun show() {
+        if (OS.isMacOSX()) {
+            // See http://stackoverflow.com/a/10366465/262432. This does not
+            // affect the application name displayed to the left of the menu,
+            // as explained here http://stackoverflow.com/a/26080591/262432.
+            System.setProperty("apple.laf.useScreenMenuBar", "true")
+        }
+
         BrowserSplash.display()
 
         preprocess()
@@ -79,15 +87,11 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
         mainPanel = MainPanel(this, ImmutableList.copyOf(trackViews))
         val menu = JMenuBar()
         mainPanel.fillMenu(menu)
-
         JFrame(GEMLBEE).apply {
             contentPane = mainPanel
             jMenuBar = menu
-            invalidate()
-            validate()
-            repaint()
             defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
-            setLocation(0, 0)
+            location = Point(0, 0)
             size = if (!OS.isMacOSX())
                 Toolkit.getDefaultToolkit().screenSize
             else

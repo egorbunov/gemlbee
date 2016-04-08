@@ -1,7 +1,6 @@
 package org.jetbrains.bio.browser.model
 
 import org.jetbrains.bio.genome.Gene
-import org.jetbrains.bio.genome.GeneAliasType
 import org.jetbrains.bio.genome.Location
 import org.jetbrains.bio.genome.LocationAware
 
@@ -23,8 +22,7 @@ data class GeneLocRef(val gene: Gene,
                       override val location: Location = gene.location ) :
         LocationReference {
 
-    override val name: String
-        get() = gene.getName(GeneAliasType.GENE_SYMBOL);
+    override val name: String get() = gene.symbol
 
     override fun update(newLoc: Location) = GeneLocRef(gene, newLoc)
 }

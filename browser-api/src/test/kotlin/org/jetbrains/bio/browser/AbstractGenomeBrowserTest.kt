@@ -25,7 +25,7 @@ class AbstractGenomeBrowserTest {
 
     @Test fun testHandleMultipleLocModel() {
         val gq = GenomeQuery("to1")
-        val chr = Chromosome["to1", "chr1"]
+        val chr = Chromosome("to1", "chr1")
         val locRef = SimpleLocRef(Location(0, 1000, chr, Strand.PLUS))
 
         val browser = HeadlessGenomeBrowser(
@@ -41,7 +41,7 @@ class AbstractGenomeBrowserTest {
 
     @Test fun testHandleMultipleLocModel_RangeFilter() {
         val gq = GenomeQuery("to1")
-        val chr = Chromosome["to1", "chr1"]
+        val chr = Chromosome("to1", "chr1")
         val locRef = SimpleLocRef(Location(0, 1000, chr, Strand.PLUS))
 
         val browser = HeadlessGenomeBrowser(

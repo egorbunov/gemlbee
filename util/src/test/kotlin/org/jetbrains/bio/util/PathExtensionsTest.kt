@@ -250,3 +250,20 @@ class PathExtensionsTest {
         }
     }
 }
+
+class TestFileSize {
+    @Test fun formatting() {
+        assertEquals("0 b", FileSize(0L).toString())
+        assertEquals("10 b", FileSize(10L).toString())
+        assertEquals("100 b", FileSize(100L).toString())
+        assertEquals("1020 b", FileSize(1020L).toString())
+        assertEquals("1 kb", FileSize(1050L).toString())
+        assertEquals("10,3 kb", FileSize(10500L).toString())
+        assertEquals("102,5 kb", FileSize(105000L).toString())
+        assertEquals("1 mb", FileSize(1050000L).toString())
+        assertEquals("10 mb", FileSize(10500000L).toString())
+        assertEquals("100,1 mb", FileSize(105000000L).toString())
+        assertEquals("1001,4 mb", FileSize(1050000000L).toString())
+        assertEquals("1,9 gb", FileSize(2050000000L).toString())
+    }
+}

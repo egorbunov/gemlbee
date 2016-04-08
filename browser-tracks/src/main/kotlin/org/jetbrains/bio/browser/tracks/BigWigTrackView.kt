@@ -3,21 +3,24 @@ package org.jetbrains.bio.browser.tracks
 import org.apache.log4j.Logger
 import org.jdesktop.swingx.graphics.BlendComposite
 import org.jdesktop.swingx.graphics.BlendComposite.BlendingMode
-import org.jetbrains.bio.big.BigFile
 import org.jetbrains.bio.big.BigSummary
 import org.jetbrains.bio.big.BigWigFile
+import org.jetbrains.bio.big.WigFile
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Key
 import org.jetbrains.bio.browser.util.Storage
 import org.jetbrains.bio.browser.util.TrackUIUtil
-import org.jetbrains.bio.ext.asFileSize
-import org.jetbrains.bio.ext.size
+import org.jetbrains.bio.ext.*
 import org.jetbrains.bio.genome.ChromosomeRange
 import org.jetbrains.bio.genome.Strand
+import org.jetbrains.bio.genome.query.GenomeQuery
 import org.jetbrains.bio.util.Colors
+import org.jetbrains.bio.util.Configuration
 import java.awt.*
 import java.nio.file.Path
 import java.util.*
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 import java.util.function.Consumer
 import java.util.stream.IntStream
 import javax.swing.*
@@ -73,7 +76,7 @@ abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
 
         val dataOn = { layer: Int, strand: Strand ->
             byPixelData(getDataPath(layer, strand, model, conf),
-                    visibleRange, width)
+                        visibleRange, width)
         }
         val pixelData = (0 until layersNumber).map { layer ->
             val plusData = dataOn(layer, Strand.PLUS)
@@ -95,11 +98,16 @@ abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
 
         val binnedSummaryData: List<BigSummary>
         try {
+            //TODO: try to reuse file instance
             binnedSummaryData = BigWigFile.read(path).use { bwFile ->
-                bwFile.summarize(range, numBins)
+                bwFile.summarize(range.chromosome.name,
+                                 range.startOffset,
+                                 range.endOffset,
+                                 numBins
+                )
             }
         } catch (ex: Exception) {
-            Logger.getRootLogger().error("Cannot read file: $path, size ${path.size.asFileSize()}")
+            Logger.getRootLogger().error("Cannot read file: $path, size ${path.size}")
             throw ex
         }
 
@@ -302,13 +310,6 @@ abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
         }
     }
 
-    protected fun BigFile<*>.summarize(chrRange: ChromosomeRange, numBins: Int): List<BigSummary> {
-        return summarize(chrRange.chromosome.name,
-                chrRange.startOffset,
-                chrRange.endOffset,
-                numBins)
-    }
-
     class TrackData(private val layersPlusMinusData: List<Pair<List<BigSummary>, List<BigSummary>>>,
                     private val stranded: Boolean) {
         operator fun get(layer: Int, strand: Strand = Strand.PLUS): List<BigSummary> {
@@ -408,28 +409,71 @@ abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
     }
 
     companion object {
+        private val LOG = Logger.getLogger(BigWigTrackView::class.java)
+
+        /**
+         * Track view for bigwig (*.bw) or wig files (*.wig, *.wig.gz). By default
+         * data shown at 1bp resolution (binSize = 1)
+         */
         @JvmStatic fun create(title: String, yAxisTitle: String,
+                              binSize: Int = 1,
                               vararg descAndPaths: Pair<String, Path>): BigWigTrackView {
+
             return object : BigWigTrackView(title = title) {
                 override val layersNumber = descAndPaths.size
                 override val strandedData = false
                 override val yAxisTitle = yAxisTitle
+                val descs = descAndPaths.map { it.first }
+                val bwPaths = ArrayList<Path>()
 
                 private val palette = when (layersNumber) {
                     1 -> listOf(Color.BLACK)
                     else -> Colors.palette(layersNumber, 200)
                 }
 
+                override fun preprocess(genomeQuery: GenomeQuery) {
+                    val chromSizes = genomeQuery.get().map { it.name to it.length }
+
+                    LOG.time(message = "Browser preprocess data for: $title") {
+                        val executor = Executors.newWorkStealingPool(Runtime.getRuntime().availableProcessors())
+                        val tasks = ArrayList<Callable<*>>()
+                        for ((desc, trackPath) in descAndPaths) {
+                            val ext = trackPath.extension
+                            if (ext == "bw") {
+                                bwPaths.add(trackPath)
+                            } else {
+                                assert(ext == "wig" || ext == "wig.gz" || ext == "wig.zip") {
+                                    "File type not supported: $trackPath"
+                                }
+                                val bwPath = Configuration.cachePath / "browser" / "${trackPath.name}.bw"
+
+                                bwPaths.add(bwPath)
+
+                                tasks.add(Callable {
+                                    bwPath.checkOrRecalculate(BigWigTrackView.javaClass.simpleName) { output ->
+                                        output.let { path ->
+                                            BigWigFile.write(WigFile(trackPath), chromSizes, path)
+                                        }
+                                    }
+                                })
+                            }
+                        }
+                        executor.awaitAll(tasks)
+                        check(executor.shutdownNow().isEmpty())
+                    }
+
+                }
+
                 override fun renderer(layer: Int,
                                       model: SingleLocationBrowserModel,
                                       conf: Storage,
                                       uiOptions: Storage)
-                        = ValueRenderer(palette[layer])
+                        = BinnedRenderer(binSize, palette[layer])
 
                 override fun getDataPath(layer: Int, strand: Strand,
                                          model: SingleLocationBrowserModel,
                                          conf: Storage)
-                        = descAndPaths[layer].second
+                        = bwPaths[layer]
 
                 override fun addTrackControls(): List<Pair<String, JComponent>> {
                     return if (layersNumber > 2) {
@@ -441,8 +485,7 @@ abstract class BigWigTrackView(lineType: LineType = LineType.HIST_LIKE,
 
                 override fun drawLegend(g: Graphics, width: Int, height: Int, drawInBG: Boolean) {
                     TrackUIUtil.drawBoxedLegend(g, width, height, drawInBG,
-                                                *descAndPaths
-                                                        .mapIndexed { layer, pair -> palette[layer].to(pair.first) }
+                                                *descs.mapIndexed { layer, desc -> palette[layer] to desc }
                                                         .toTypedArray())
                 }
             }
@@ -467,4 +510,33 @@ open class ValueRenderer(protected val color: Color = Color.BLACK) {
     else
         pixelSummary.sum / pixelSummary.count
 
+}
+
+/**
+ * If range is less than bin size shows whole bin value, otherwise if range contain several bins
+ * returns value of averaged bin in range
+ */
+open class BinnedRenderer(val binSize: Int,
+                          color: Color = Color.BLACK) : ValueRenderer(color) {
+    override fun valueOf(pixelSummary: BigSummary, nanDefaultValue: Double): Double {
+        // When range intersects with bin, BigWig returns:
+        //   pixelSummary.sum = sum{i}[value_i * (intersection_i %)] =
+        //   = sum[value_i * (intersection_i/bin size)]
+        //
+        //   pixelSummary.count = sum{i}[intersection_i]
+        //
+        //   pixelSummary.sum / pixelSummary.count ~= avg value per 1 bp
+        //   (pixelSummary.sum / pixelSummary.count) * bin_size ~= avg value per bin
+
+        // Nucleotides in range with bins data intersection, may include more
+        // than one bin for small zoom levels
+        val intersectionCumSize = pixelSummary.count
+
+        return when {
+            intersectionCumSize == 0L || pixelSummary.sum.isNaN() -> nanDefaultValue
+        // * if shorter than one bin => show corresponding bin value
+        // * if covers several bins => avg bin value
+            else -> pixelSummary.sum * binSize / intersectionCumSize
+        }
+    }
 }

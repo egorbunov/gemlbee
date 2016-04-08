@@ -85,7 +85,7 @@ data class Range(
          * semi-closed on the right. If you don't like it, feel free to
          * alter the right bound on serialization/deserialization.
          */
-        @JvmStatic val ADAPTER = object : TypeAdapter<Range>() {
+        internal val ADAPTER = object : TypeAdapter<Range>() {
             override fun read(`in`: JsonReader) = with(`in`) {
                 beginArray()
                 val startOffset = nextInt()
@@ -207,7 +207,7 @@ data class Location(val startOffset: Int, val endOffset: Int,
             .result()
 
     companion object {
-        @JvmStatic val ADAPTER = object : TypeAdapter<Location>() {
+        internal val ADAPTER = object : TypeAdapter<Location>() {
             override fun read(`in`: JsonReader) = with(`in`) {
                 beginArray()
                 val startOffset = nextInt()

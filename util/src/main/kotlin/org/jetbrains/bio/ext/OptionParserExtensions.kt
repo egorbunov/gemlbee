@@ -5,20 +5,12 @@ import org.jetbrains.bio.util.Logs
 import java.io.StringWriter
 import java.nio.file.Path
 import java.util.*
-import java.util.function.Consumer
 
 /**
  * NOTE:
  * Do not implement get[], because is has ambiguous meaning: [OptionSet#valueOf] or [OptionSet#valuesOf]
  */
 operator fun OptionSet.contains(option: String): Boolean = has(option)
-
-// Remove this once all the Java callers are konverted. There's
-// no way to annotate a Kotlin function a throwing exception, thus
-// I had to create a separate wrapper.
-fun OptionParser.parseLegacy(args: Array<String>, block: Consumer<OptionSet>) {
-    parse(args) { block.accept(it) }
-}
 
 fun OptionParser.parse(args: Array<String>, block: (OptionSet) -> Unit) {
     try {
@@ -69,12 +61,12 @@ abstract class PathConverter : ValueConverter<Path> {
         return path
     }
 
-    override fun valueType(): Class<Path> = Path::class.java
+    override fun valueType() = Path::class.java
 
     override fun valuePattern(): String? = null
 
     companion object {
-        @JvmStatic fun exists(): PathConverter = object : PathConverter() {
+        fun exists(): PathConverter = object : PathConverter() {
             override fun check(path: Path) {
                 if (path.notExists) {
                     throw ValueConversionException("Path $path does not exist")
@@ -82,7 +74,7 @@ abstract class PathConverter : ValueConverter<Path> {
             }
         }
 
-        @JvmStatic fun noCheck(): PathConverter = object : PathConverter() {
+        fun noCheck(): PathConverter = object : PathConverter() {
             @Throws(ValueConversionException::class)
             override fun check(path: Path) {}
         }

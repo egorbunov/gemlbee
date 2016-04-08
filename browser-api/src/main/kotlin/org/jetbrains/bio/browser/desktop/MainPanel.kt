@@ -87,10 +87,10 @@ class NavigationMenu : JMenu("Navigation") {
     }
 
     val zoomIn = JMenuItem("Zoom In").apply {
-        accelerator = getKeyStroke("=")
+        accelerator = getKeyStroke('=')
     }
     val zoomOut = JMenuItem("Zoom Out").apply {
-        accelerator = getKeyStroke("-")
+        accelerator = getKeyStroke('-')
     }
 
     init {

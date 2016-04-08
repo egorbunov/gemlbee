@@ -5,6 +5,7 @@ import com.google.common.collect.Maps
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import org.jetbrains.bio.ext.checkOrRecalculate
 import org.jetbrains.bio.ext.div
 import org.jetbrains.bio.ext.name
 import org.jetbrains.bio.ext.toPath
@@ -42,7 +43,7 @@ data class Genome private constructor(
     val species: String get() = build.takeWhile { !it.isDigit() }
 
     /** Species binomial name, e.g. `"Mus musculus"`. */
-    val description: String = when (species) {
+    val description = when (species) {
         "mm" -> "Mus musculus"
         "hg" -> "Homo sapiens"
         "to" -> "Test organism"
@@ -64,17 +65,21 @@ data class Genome private constructor(
         } else {
             Genome(build).dataPath / "$build.2bit"
         }
-        UCSC.downloadTo(path, build, "bigZips", path.name)
+
+        path.checkOrRecalculate(path.name) { output ->
+            output.let { UCSC.downloadTo(it, build, "bigZips", path.name) }
+        }
+
         return path
     }
 
-    // Must be cached. Used for resolving chromosome IDs in [Chromosome#get].
+    // Must be cached. Used for resolving chromosome IDs in [Chromosome.invoke].
     internal val names: List<String> by lazy(LazyThreadSafetyMode.PUBLICATION) {
         TwoBitReader.names(twoBitPath).sorted()
     }
 
     val chromosomes: List<Chromosome> get() {
-        return names.mapIndexed { id, name -> Chromosome[this, id] }
+        return names.mapIndexed { id, name -> Chromosome(this, id) }
     }
 
     val genes: Collection<Gene> get() = Genes.all(this).values()
@@ -84,15 +89,12 @@ data class Genome private constructor(
     override fun compareTo(other: Genome) = build.compareTo(other.build)
 
     companion object {
-        private val CACHE = Maps.newConcurrentMap<String, Genome>()
-
         // Caching is required, because '2bit' sequence must be loaded
         // only once for each build.
-        @JvmStatic fun get(build: String): Genome {
-            return CACHE.computeIfAbsent(build) { Genome(build) }
-        }
+        private val CACHE = Maps.newConcurrentMap<String, Genome>()
 
-        operator fun invoke(build: String) = get(build)
+        /** Fake constructor to ensure reference equality. */
+        operator fun invoke(build: String) = CACHE.computeIfAbsent(build) { Genome(build) }
     }
 }
 
@@ -172,40 +174,29 @@ data class Chromosome private constructor(
     companion object {
         private val CACHE = Maps.newConcurrentMap<Pair<Genome, Int>, Chromosome>()
 
-        @JvmStatic operator fun get(genome: Genome, id: Int): Chromosome {
+        /** Fake constructor to ensure reference equality. */
+        internal operator fun invoke(genome: Genome, id: Int): Chromosome {
             return CACHE.computeIfAbsent(genome to id) { Chromosome(genome, id) }
         }
 
-        /**
-         * Constructs a chromosome from a human-readable name, e.g. "chrM".
-         */
-        @JvmStatic operator fun get(build: String, name: String): Chromosome {
+        /** Constructs a chromosome from a human-readable name, e.g. "chrM". */
+        operator fun invoke(build: String, name: String): Chromosome {
             val genome = Genome(build)
             val id = genome.names.indexOf(name)
             check(id >= 0) { "unknown chromosome $name for genome $build" }
-            return get(genome, id)
+            return Chromosome(genome, id)
         }
 
-        /**
-         * A custom JSON adapter which uses [Chromosome#get] to ensure
-         * reference equality for loaded chromosomes.
-         */
-        @JvmStatic val ADAPTER = object : TypeAdapter<Chromosome>() {
+        internal val ADAPTER = object : TypeAdapter<Chromosome>() {
             override fun read(`in`: JsonReader) = with(`in`) {
-                beginObject()
-                check(nextName() == "build")
-                val build = nextString()
-                check(nextName() == "id")
-                val id = nextInt()
-                endObject()
-                Chromosome[Genome(build), id]
+                val token = nextString()
+                val build = token.substringBefore(":")
+                val id = token.substringAfter(":").toInt()
+                Chromosome(Genome(build), id)
             }
 
             override fun write(out: JsonWriter, chromosome: Chromosome) {
-                out.beginObject()
-                        .name("build").value(chromosome.genome.build)
-                        .name("id").value(chromosome.id)
-                        .endObject()
+                out.value("${chromosome.genome.build}:${chromosome.id}")
             }
         }.nullSafe()
     }

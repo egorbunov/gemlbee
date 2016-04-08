@@ -1,3 +1,6 @@
+// Remove this once KT-11820 is done.
+@file:Suppress("UsePropertyAccessSyntax")
+
 package org.jetbrains.bio.genome.sequence
 
 import com.google.common.base.Preconditions.checkElementIndex
@@ -53,7 +56,7 @@ class TwoBitSequence(
         /** 2-bit packed DNA sequence. */
         private val packedDna: IntArray) : NucleotideSequence {
 
-    private val nBlockLut: BinaryLut = BinaryLut.of(nBlockStarts, 8)
+    private val nBlockLut = BinaryLut.of(nBlockStarts, 8)
 
     init {
         require(length > 0) { "invalid length" }
@@ -223,7 +226,7 @@ class TwoBitSequence(
  */
 object TwoBitReader {
     /** Magic number used for determining [ByteOrder].  */
-    val MAGIC = 0x1A412743
+    const val MAGIC = 0x1A412743
 
     /**
      * Extracts available sequence names from the 2bit file specified
@@ -254,7 +257,7 @@ object TwoBitReader {
         val index = getIndex(buf)
         require(index.containsKey(name)) { "unknown sequence: $name" }
         buf.position(index[name])
-        return buf.int
+        return buf.getInt()
     }
 
     /**
@@ -279,9 +282,9 @@ object TwoBitReader {
      * Reads a mapping from sequence names to offsets in the 2bit file.
      */
     internal fun getIndex(buf: ByteBuffer): TObjectIntMap<String> {
-        val version = buf.int
-        val sequenceCount = buf.int
-        val reserved = buf.int
+        val version = buf.getInt()
+        val sequenceCount = buf.getInt()
+        val reserved = buf.getInt()
 
         check(reserved == 0) { "invalid reserved value: $reserved" }
         check(version == 0) { "unexpected version: $version" }
@@ -291,7 +294,7 @@ object TwoBitReader {
         for (i in 0..sequenceCount - 1) {
             val chunk = ByteArray(buf.get().toInt())
             buf.get(chunk)
-            index.put(String(chunk), buf.int)
+            index.put(String(chunk), buf.getInt())
         }
 
         return index
@@ -308,9 +311,9 @@ object TwoBitReader {
      */
     private fun getBuffer(path: Path): ByteBuffer {
         return FileChannel.open(path).use { fc ->
-            val buf = fc.map(FileChannel.MapMode.READ_ONLY, 0, path.size)
+            val buf = fc.map(FileChannel.MapMode.READ_ONLY, 0, path.size.toBytes())
             buf.order(ByteOrder.nativeOrder())
-            val nativeMagic = buf.int
+            val nativeMagic = buf.getInt()
             if (nativeMagic != MAGIC) {
                 val reversedMagic = java.lang.Integer.reverseBytes(nativeMagic)
                 check(reversedMagic == MAGIC) { "bad signature" }

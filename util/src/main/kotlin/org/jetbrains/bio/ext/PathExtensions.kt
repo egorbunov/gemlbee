@@ -14,6 +14,9 @@ import java.nio.file.*
 import java.nio.file.StandardOpenOption.CREATE
 import java.nio.file.StandardOpenOption.WRITE
 import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.FileTime
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.util.*
 import java.util.zip.*
 
@@ -64,10 +67,52 @@ val Path.stem: String get() = name.substringBeforeLast(".$extension")
  */
 val Path.extension: String get() = toFile().extension
 
+/** File size pretty-printer. */
+data class FileSize internal constructor(
+        /** Size in bytes as returned by [Files.size]. */
+        private val size: Long) {
+
+    init {
+        require(size >= 0) { "size must be >=0 ($size)" }
+    }
+
+    /** Returns size of the file in bytes. */
+    fun toBytes() = size
+
+    override fun toString(): String {
+        if (size == 0L) {
+            return "0 b"
+        }
+
+        val units = (Math.log(size.toDouble()) / Math.log(1024.0)).toInt()
+        val value = size / Math.pow(1024.0, units.toDouble())
+        return "${FORMAT.format(value)} ${UNITS[units]}"
+    }
+
+    companion object {
+        private val FORMAT = DecimalFormat("#,##0.#").apply {
+            isGroupingUsed = false
+            decimalFormatSymbols = DecimalFormatSymbols.getInstance().apply {
+                decimalSeparator = ','
+            }
+        }
+
+        /** Add terabytes when we get enough disk space. */
+        private val UNITS = arrayOf("b", "kb", "mb", "gb")
+    }
+}
+
 /**
- * Returns file size in bytes.
+ * Returns file size suitable for pretty-printing.
+ *
+ * Use [FileSize.toBytes] to get the result of [Files.size].
  */
-val Path.size: Long get() = Files.size(this)
+val Path.size: FileSize get() = FileSize(Files.size(this))
+
+/**
+ * Returns the timestamp of the last modification.
+ */
+val Path.lastModifiedTime: FileTime get() = Files.getLastModifiedTime(this)
 
 /** Returns a new path with the [name] changed. */
 fun Path.withName(newName: String): Path {
@@ -263,7 +308,7 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
     // Optimization: if target already exist => just read, with no file locks
     // " !=0" check is optional here, in general we don't expect 0 size files here, so
     // it is an additional check for smth unexpected
-    if (exists && size != 0L) {
+    if (exists && size.toBytes() != 0L) {
         LOG.trace("$label: No lock required for $thisPathStr")
 
         result = LOG.time(level = Level.TRACE,
@@ -305,8 +350,8 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
                 // * Size cannot == 0 when using readOrRecalculate(), but if you create empty file
                 //      first (e.g. tmp file) and pass it to readOrRecalculate() let's do not be
                 //      confused and force recalculate
-                if (exists && size != 0L) {
-                    LOG.debug("$label: File $thisPathStr is already ready. Size = ${size.asFileSize()}.")
+                if (exists && size.toBytes() != 0L) {
+                    LOG.debug("$label: File $thisPathStr is already ready. Size = $size.")
 
                     // release locks before reading
                     lockPath.delete()
@@ -324,7 +369,7 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
                     if (!exists) {
                         LOG.debug("$label: File $thisPathStr is missing.")
                     } else {
-                        LOG.debug("$label: Force recalculate empty $thisPathStr file: size = ${size.asFileSize()}.")
+                        LOG.debug("$label: Force recalculate empty $thisPathStr file: size = $size.")
                     }
                     result = LOG.time(level = Level.INFO,
                             message = "$label: processing $thisPathStr") {
@@ -341,7 +386,7 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
                             val (wrapper, res) = recalculate(PathWrapper(tmpPath))
                             wrapper.checkAccessed();
                             if (tmpPath.exists) {
-                                if (tmpPath.size == 0L) {
+                                if (tmpPath.size.toBytes() == 0L) {
                                     check(false) {
                                         "$label: Recalculate function is expected to return not empty file: $tmpPathStr"
                                     }
@@ -352,7 +397,7 @@ fun <T: Any> Path.readOrRecalculate(read: () -> T,
                                 tmpPath.move(this,
                                              StandardCopyOption.ATOMIC_MOVE,
                                              StandardCopyOption.REPLACE_EXISTING)
-                                LOG.debug("$label: Done, $name is ready to use. Size = ${size.asFileSize()}.")
+                                LOG.debug("$label: Done, $name is ready to use. Size = $size.")
                             } else {
                                 LOG.trace("$label: Tmp file (${tmpPath.name}) wasn't saved, noting to move.")
                             }

@@ -1,11 +1,9 @@
 package org.jetbrains.bio.methylome;
 
-import com.google.common.base.Preconditions;
 import gnu.trove.list.TByteList;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TByteArrayList;
 import gnu.trove.list.array.TIntArrayList;
-import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.bio.data.frame.DataFrame;
@@ -19,7 +17,6 @@ import org.jetbrains.bio.genome.sequence.NucleotideSequenceKt;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import static org.jetbrains.bio.methylome.MethylomeDfPredicatesKt.controlFdr;
 import static org.jetbrains.bio.methylome.MethylomeDfPredicatesKt.covered;
 
 /**

@@ -76,6 +76,8 @@ project(':browser-api') {
 
 project(':browser-tracks') {
     dependencies {
+        compile 'org.jetbrains.bio:big:0.3.+'
+
         compile project(':browser-api')
         compile project(':data')
     }
@@ -91,6 +93,7 @@ project(':data') {
         compile 'com.esotericsoftware.yamlbeans:yamlbeans:1.+'
         compile 'org.jetbrains.bio:viktor:0.1.4'
         compile 'org.jetbrains.bio:npy:0.2.+'
+
 
         compile files("$rootDir/lib/yeppp-bundle-1.0.jar")
         compile files("$rootDir/lib/simd.jar",

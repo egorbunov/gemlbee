@@ -197,6 +197,12 @@ chr4    55538009    55547347    KLF4    -
                     tdfTrackView(path)
                 }
 
+                name.endsWith(".wig") -> {
+                    LOG.debug("Created Wig track view for $path")
+                    wigTrackView(name, path)
+                }
+
+
             // as fastq reads folder:
                 path.isDirectory -> {
                     LOG.debug("Created Kallisto track view for $path")
@@ -220,6 +226,10 @@ chr4    55538009    55547347    KLF4    -
         private fun bsSeqTrackView(condition: String, gq: GenomeQuery, path: Path): MethylomeRawDataTrackView {
             val query = MethylomeQuery.forFile(gq, condition, path, verboseDescription = true)
             return MethylomeRawDataTrackView(query, CytosineContext.CG, 50)
+        }
+
+        private fun wigTrackView(condition: String, path: Path): BigWigTrackView {
+            return BigWigTrackView.create(condition, "", descAndPaths = *arrayOf(condition to path))
         }
 
 

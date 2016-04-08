@@ -1,14 +1,18 @@
 package org.jetbrains.bio.browser.tracks
 
-import com.google.common.cache.CacheBuilder
+import com.google.common.collect.Iterables
 import org.jetbrains.bio.browser.genomeToScreen
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.util.Storage
-import org.jetbrains.bio.genome.Chromosome
+import org.jetbrains.bio.genome.CpGIsland
 import org.jetbrains.bio.genome.Location
 import org.jetbrains.bio.genome.LocationAware
+import org.jetbrains.bio.genome.Strand
+import org.jetbrains.bio.genome.containers.LocationList
+import org.jetbrains.bio.genome.query.GenomeQuery
 import java.awt.Color
 import java.awt.Graphics
+import java.util.*
 
 /**
  * A track view for "things" with genomic locations. The current
@@ -25,17 +29,12 @@ abstract class LocationAwareTrackView<T : LocationAware> protected constructor(t
     }
 
     override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
-        val items = getItems(model)
-        if (items.isEmpty()) {
-            return
-        }
-
-        paintItems(g, model, conf, items)
+        paintItems(g, model, conf, getItems(model))
     }
 
     protected open fun paintItems(g: Graphics, model: SingleLocationBrowserModel,
-                                  configuration: Storage, items: List<T>) {
-        val strands = items.asSequence().map { it.location.strand }.toSet()
+                                  configuration: Storage, items: Iterable<T>) {
+        val strands = items.mapTo(HashSet<Strand>()) { it.location.strand }
         val trackWidth = configuration[TrackView.WIDTH]
         val trackHeight = configuration[TrackView.HEIGHT]
         val chromosome = model.chromosome
@@ -62,7 +61,7 @@ abstract class LocationAwareTrackView<T : LocationAware> protected constructor(t
                 else -> -trackHeight / 2
             }
 
-            g.color = getItemColor(item)
+            g.color = item.color
             if (endX == startX) {
                 // draw 3 x height: rectangle
                 val width = 3
@@ -74,19 +73,26 @@ abstract class LocationAwareTrackView<T : LocationAware> protected constructor(t
         }
     }
 
-    protected abstract fun getItems(model: SingleLocationBrowserModel): List<T>
+    protected abstract fun getItems(model: SingleLocationBrowserModel): Iterable<T>
 
-    protected open fun getItemColor(item: T): Color = Color.DARK_GRAY
+    protected open val T.color: Color get() = Color.DARK_GRAY
 }
 
-class LocationsTrackView(private val locations: List<Location>, title: String) :
+class LocationsTrackView(private val locations: LocationList, title: String) :
         LocationAwareTrackView<Location>(title) {
-
-    private val CACHE = CacheBuilder.newBuilder().weakKeys().build<Chromosome, List<Location>>()
-
-    override fun getItems(model: SingleLocationBrowserModel): List<Location> {
-        return CACHE.get(model.chromosome) {
-            locations.filter { it.chromosome == model.chromosome }
-        }
+    override fun getItems(model: SingleLocationBrowserModel): Iterable<Location> {
+        return Iterables.concat(locations[model.chromosome, Strand.PLUS],
+                                locations[model.chromosome, Strand.MINUS])
     }
 }
+
+class CpGIslandsTrackView : LocationAwareTrackView<CpGIsland>("CpG islands") {
+    override fun preprocess(genomeQuery: GenomeQuery) {
+        for (chromosome in genomeQuery.get()) {
+            chromosome.cpgIslands
+        }
+    }
+
+    override fun getItems(model: SingleLocationBrowserModel) = model.chromosome.cpgIslands
+}
+

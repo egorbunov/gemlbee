@@ -31,6 +31,11 @@ enum class CytosineContext private constructor(@JvmField val tag: Byte) {
          */
         @JvmField val ANY: CytosineContext? = null
 
+        /**
+         * Unlike [.values] this array include [.ANY] context.
+         */
+        @JvmField val CONTEXTS = arrayOf(CG, CHH, CHG, ANY)
+
         @JvmStatic fun determine(sequence: NucleotideSequence,
                                  offset: Int, strand: Strand): CytosineContext? {
             val seqLength = sequence.length()

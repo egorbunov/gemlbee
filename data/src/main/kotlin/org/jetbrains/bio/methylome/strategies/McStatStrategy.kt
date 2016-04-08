@@ -24,9 +24,9 @@ interface McStatStrategy<T : McStatStrategy.Data> {
      */
 
     fun prepareSampleData(chr: Chromosome,
-                                 samples: Array<String>,
-                                 strandFilter: StrandFilter = StrandFilter.BOTH,
-                                 sampleToChrMethylome: (String) -> List<MethylomeQuery>): T
+                          samples: Array<String>,
+                          strandFilter: StrandFilter = StrandFilter.BOTH,
+                          sampleToChrMethylome: (String) -> List<MethylomeQuery>): T
 
 
     /**
@@ -35,8 +35,8 @@ interface McStatStrategy<T : McStatStrategy.Data> {
      * @param locations Given locations
      */
     fun test(sampleId: Int,
-                    samplesData: T,
-                    vararg locations: Location): Double
+             samplesData: T,
+             vararg locations: Location): Double
 
     open class Data(val chromosome: Chromosome) {
     }

@@ -94,8 +94,7 @@ class Kallisto(private val executable: Path = "kallisto".toPath()) {
             val acc = ArrayList<TranscriptAbundance>()
             for (row in FORMAT.parse(abundancePath.bufferedReader())) {
                 val alias = row["target_id"]
-                val gene = GeneResolver.getAny(
-                        genome.build, alias, GeneAliasType.ENSEMBL_ID)
+                val gene = GeneResolver.getAny(genome.build, alias, GeneAliasType.ENSEMBL_ID)
                 if (gene != null) {
                     acc.add(TranscriptAbundance(gene, row["tpm"].toDouble()))
                 } else {
@@ -141,8 +140,8 @@ class KallistoQuery(
     // XXX used in 'SleuthQuery'.
     val result: Kallisto.Result get() {
         val outputPath = Configuration.cachePath / "kallisto" / id
-        // Possible workaround for https://github.com/JetBrains-Research/epigenome/issues/823
-        return Kallisto().run(genome, fastqReads, outputPath)
+        return Kallisto().run(genome, fastqReads, outputPath,
+                bootstrap = 100, threads = Runtime.getRuntime().availableProcessors())
     }
 
     override fun getUncached(): List<TranscriptAbundance> = result.abundances
@@ -150,6 +149,10 @@ class KallistoQuery(
     override val id: String get() {
         return arrayOf("kallisto", genome.build, condition.name, suffix)
                 .joinToString("_")
+    }
+
+    companion object {
+        val LOG = Logger.getLogger(KallistoQuery::class.java)
     }
 }
 
@@ -160,13 +163,16 @@ val Path.fastqReads: Array<Path> get() {
 
 fun kallistoTpmAbundance(genes: List<Gene>, replicates: List<KallistoQuery>): TObjectDoubleHashMap<Gene> {
     val tpmAbundance = TObjectDoubleHashMap<Gene>()
-    replicates
-            .map { it.get() }
-            .forEach {
-                it.forEach { tpmAbundance.adjustOrPutValue(it.transcript, it.tpm, it.tpm) }
-            }
+    for (replicate in replicates) {
+        for (t in replicate.get()) {
+            tpmAbundance.adjustOrPutValue(t.transcript, t.tpm, t.tpm)
+        }
+    }
     // Average over replicates
     for (g in genes) {
+        if (g !in tpmAbundance) {
+            KallistoQuery.LOG.warn("No information about gene ${g.names[GeneAliasType.ENSEMBL_ID]} in loaded abundance.")
+        }
         tpmAbundance.put(g, tpmAbundance[g] / replicates.size)
     }
     return tpmAbundance

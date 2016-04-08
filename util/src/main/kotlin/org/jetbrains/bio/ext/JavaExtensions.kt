@@ -4,10 +4,6 @@ import java.util.stream.Collector
 import java.util.stream.Stream
 
 /**
- * @author Roman.Chernyatchik
- */
-
-/**
  * Returns parallel stream method to kotlin Collection interface.
  *
  * Please remove it after KT-5175 (https://youtrack.jetbrains.com/issue/KT-5175) is fixed
@@ -15,6 +11,7 @@ import java.util.stream.Stream
 fun <T> Collection<T>.parallelStream(): java.util.stream.Stream<T> {
     return (this as java.util.Collection<T>).parallelStream()
 }
+
 fun <T> Collection<T>.stream(): java.util.stream.Stream<T> {
     return (this as java.util.Collection<T>).stream()
 }

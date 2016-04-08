@@ -63,13 +63,13 @@ class ConcurrentGenomeStrandMapTest {
 
     @Test(expected = NoSuchElementException::class) fun testPut_ByUnexpectedChr() {
         val map = genomeStrandMap(GenomeQuery("to1", "chr2")) { _c, _s -> "" }
-        val chromosome1 = Chromosome["to1", "chr1"]
+        val chromosome1 = Chromosome("to1", "chr1")
         map[chromosome1, Strand.PLUS] = "1"
     }
 
     @Test(expected = NoSuchElementException::class) fun testGetByUnexpectedChr() {
         val map = genomeStrandMap(GenomeQuery("to1", "chr2")) { _c, _s -> "" }
-        val chromosome1 = Chromosome["to1", "chr1"]
+        val chromosome1 = Chromosome("to1", "chr1")
         map[chromosome1, Strand.PLUS]
     }
 }

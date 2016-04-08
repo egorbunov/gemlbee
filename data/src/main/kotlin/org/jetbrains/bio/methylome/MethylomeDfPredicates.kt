@@ -2,7 +2,6 @@ package org.jetbrains.bio.methylome
 
 import org.jetbrains.bio.data.frame.*
 
-
 /**
  * @author Roman.Chernyatchik
  */

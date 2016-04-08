@@ -74,7 +74,7 @@ class LocationListTest {
         assertEquals(listOf(universe),
                      universe - listOf(Location(0, 40, chromosome, Strand.MINUS)))
         assertEquals(listOf(universe),
-                     universe - listOf(Location(0, 40, Chromosome["to1", "chr2"], Strand.PLUS)))
+                     universe - listOf(Location(0, 40, Chromosome("to1", "chr2"), Strand.PLUS)))
 
         assertEquals(listOf(Location(0, 20, chromosome, Strand.PLUS),
                             Location(40, 100, chromosome, Strand.PLUS)),
@@ -82,7 +82,7 @@ class LocationListTest {
     }
 
     companion object {
-        private val chromosome = Chromosome["to1", "chr1"]
+        private val chromosome = Chromosome("to1", "chr1")
     }
 }
 

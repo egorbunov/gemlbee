@@ -43,7 +43,7 @@ object TrackViewRenderer {
         val plotHeight = height - TITLE_HEIGHT
         if (plotHeight > 0) {
             val bufferedPlot = BufferedImage(width, plotHeight, BufferedImage.TYPE_INT_ARGB)
-            paintToImage(bufferedPlot, model, width, plotHeight, trackView, cancellableState, true, uiModel)
+            paintToImage(bufferedPlot, model, width, plotHeight, trackView, cancellableState, uiModel)
 
             g.drawImage(bufferedPlot, 0, TITLE_HEIGHT + 1, null)
             // Component separator
@@ -58,7 +58,6 @@ object TrackViewRenderer {
                                 width: Int, height: Int,
                                 trackView: TrackView,
                                 cancellableState: CancellableState,
-                                drawLocationsSeparator: Boolean,
                                 uiModel: Storage) {
 
         val modelCopy = model.copy()
@@ -94,9 +93,7 @@ object TrackViewRenderer {
                 }
 
                 // Draw common separators in case multi locations model
-                if (drawLocationsSeparator) {
-                    TrackUIUtil.drawGrid(g2d, width, 0, height, modelCopy)
-                }
+                TrackUIUtil.drawGrid(g2d, width, 0, height, modelCopy)
             } else {
                 val singleModelCopy = modelCopy as SingleLocationBrowserModel
                 trackView.initConfig(singleModelCopy, config)

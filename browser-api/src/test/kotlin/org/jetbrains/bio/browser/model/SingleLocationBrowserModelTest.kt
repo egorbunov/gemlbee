@@ -13,8 +13,8 @@ import kotlin.test.*
 
 class SingleLocationBrowserModelTest {
     private var browserModel = SingleLocationBrowserModel(GenomeQuery("to1"))
-    private val chromosome1 = Chromosome["to1", "chr1"]
-    private val chromosome2 = Chromosome["to1", "chr2"]
+    private val chromosome1 = Chromosome("to1", "chr1")
+    private val chromosome2 = Chromosome("to1", "chr2")
     private val modelChangedMarker = AtomicReference<Boolean>()
     private val listener = object : ModelListener {
         override fun modelChanged() {
@@ -84,7 +84,7 @@ class SingleLocationBrowserModelTest {
     @Test fun testGetChromosome() {
         browserModel = SingleLocationBrowserModel(GenomeQuery("to1"))
         assertNotNull(browserModel.chromosome)
-        assertEquals(Chromosome["to1", "chr1"],
+        assertEquals(Chromosome("to1", "chr1"),
                      browserModel.chromosome)
 
         browserModel.setChromosomeRange(Range(100, 150).on(chromosome2))

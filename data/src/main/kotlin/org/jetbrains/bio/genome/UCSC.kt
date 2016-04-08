@@ -1,6 +1,5 @@
 package org.jetbrains.bio.genome
 
-import com.google.common.base.Joiner
 import org.apache.http.HttpEntity
 import org.apache.http.client.HttpClient
 import org.apache.http.client.HttpResponseException
@@ -93,10 +92,7 @@ object UCSC {
      *               `"%s_rmsk.txt.gz"`.
      * @throws IOException if any of the I/O operations do so.
      */
-    @Throws(IOException::class)
-    @JvmStatic fun downloadBatchTo(outputPath: Path,
-                                   build: String,
-                                   vararg chunks: Any) {
+    fun downloadBatchTo(outputPath: Path, build: String, vararg chunks: Any) {
         require(chunks.size > 0) { "expected at least a single chunk" }
         val template = chunks[chunks.size - 1].toString()
 
@@ -117,21 +113,14 @@ object UCSC {
             outputPath.deleteIfExists()  // no semi-merged files.
             throw e
         } finally {
-            tmpDir.deleteDirectory() // cleanup.
+            tmpDir.deleteDirectory()     // cleanup.
         }
     }
 
-    @Throws(IOException::class)
-    @JvmStatic fun downloadTo(outputFile: Path,
-                              build: String,
-                              vararg chunks: Any) {
-        val uri = build + '/' + Joiner.on('/').join(chunks)
+    fun downloadTo(outputFile: Path, build: String, vararg chunks: Any) {
+        val uri = build + '/' + chunks.joinToString("/")
         val url = "http://hgdownload.cse.ucsc.edu/goldenPath/$uri";
-        outputFile.checkOrRecalculate(build) { output ->
-            output.let {
-                LOG.info("Downloading $url")
-                url.downloadTo(it)
-            }
-        }
+        LOG.info("Downloading $url")
+        url.downloadTo(outputFile)
     }
 }

@@ -13,9 +13,6 @@ import java.awt.Graphics
 import java.awt.image.BufferedImage
 import kotlin.test.assertFalse
 
-/**
- * @author Roman.Chernyatchik
- */
 class TrackViewRendererTest {
     private val model = SingleLocationBrowserModel(GenomeQuery("to1"))
 
@@ -29,9 +26,8 @@ class TrackViewRendererTest {
         }
     }
 
-
-    private var paintCompleted = false
-    private var rangeChanged = false
+    private @Volatile var paintCompleted: Boolean = false
+    private @Volatile var rangeChanged: Boolean = false
 
     @Before fun setUp() {
         rangeChanged = false
@@ -51,7 +47,6 @@ class TrackViewRendererTest {
                 model.range = Range(start, end)
                 Thread.sleep(100)
             }
-
         }.start()
 
         paint()
@@ -65,7 +60,7 @@ class TrackViewRendererTest {
         uiModel[TrackView.SHOW_LEGEND] = true
         TrackViewRenderer.paintToImage(img, model, img.width, img.height, trackView,
                                        CancellableState.current(),
-                                       false, uiModel)
+                                       uiModel)
         paintCompleted = true
     }
 }

@@ -28,7 +28,7 @@ class GenomeQuery(val build: String, vararg names: String) :
                 !it.isMitochondrial && it.name.matches("chr[0-9]*[XYM]?".toRegex())
             }.toCollection(ArrayList())
         } else {
-            restriction.map { Chromosome[build, it] }.toCollection(ArrayList())
+            restriction.map { Chromosome(build, it) }.toCollection(ArrayList())
         }
     }
 

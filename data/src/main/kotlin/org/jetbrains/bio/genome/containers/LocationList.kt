@@ -2,6 +2,7 @@ package org.jetbrains.bio.genome.containers
 
 import com.google.common.collect.Iterables
 import com.google.common.collect.Lists
+import org.jetbrains.bio.data.BitterSet
 import org.jetbrains.bio.genome.*
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.jetbrains.bio.io.BedFormat
@@ -24,8 +25,10 @@ private fun <T> GenomeStrandMap<T>.merge(
  * @author Sergei Lebedev
  * @since 25/12/12
  */
-class LocationList private constructor(private val rangeLists: GenomeStrandMap<RangeList>) {
-    val genomeQuery: GenomeQuery = rangeLists.genomeQuery
+class LocationList private constructor(
+        private val rangeLists: GenomeStrandMap<RangeList>) : Iterable<Location> {
+
+    val genomeQuery: GenomeQuery get() = rangeLists.genomeQuery
 
     /**
      * Performs element-wise union on locations in the two lists.
@@ -50,15 +53,6 @@ class LocationList private constructor(private val rangeLists: GenomeStrandMap<R
         return result
     }
 
-    fun getCombined(): List<Location> {
-        val result = Lists.newArrayList<Location>()
-        for (chromosome in genomeQuery.get()) {
-            result.addAll(get(chromosome, Strand.PLUS))
-            result.addAll(get(chromosome, Strand.MINUS))
-        }
-        return result
-    }
-
     operator fun contains(location: Location): Boolean {
         return location.toRange() in rangeLists[location.chromosome, location.strand]
     }
@@ -75,23 +69,33 @@ class LocationList private constructor(private val rangeLists: GenomeStrandMap<R
         return rangeList.intersectionLength(location.toRange())
     }
 
-    fun length(): Long {
-        var length: Long = 0
+    fun size(): Long {
+        var result: Long = 0
         for (chromosome in genomeQuery.get()) {
-            length += rangeLists[chromosome, Strand.PLUS].length()
-            length += rangeLists[chromosome, Strand.MINUS].length()
+            result += rangeLists[chromosome, Strand.PLUS].size()
+            result += rangeLists[chromosome, Strand.MINUS].size()
         }
-        return length
+        return result
+    }
+
+    fun length(): Long {
+        var result: Long = 0
+        for (chromosome in genomeQuery.get()) {
+            result += rangeLists[chromosome, Strand.PLUS].length()
+            result += rangeLists[chromosome, Strand.MINUS].length()
+        }
+        return result
     }
 
     @Throws(IOException::class)
     fun save(path: Path) = BedFormat.SIMPLE.print(path).use { printer ->
-        for (chromosome in genomeQuery.get()) {
-            for (l in Iterables.concat(get(chromosome, Strand.PLUS),
-                                       get(chromosome, Strand.MINUS))) {
-                printer.print(l.toBedEntry())
-            }
-        }
+        forEach { printer.print(it.toBedEntry()) }
+    }
+
+    override fun iterator(): Iterator<Location> {
+        return Iterables.concat(genomeQuery.get().map {
+            Iterables.concat(get(it, Strand.PLUS), get(it, Strand.MINUS))
+        }).iterator()
     }
 
     class Builder(private val genomeQuery: GenomeQuery) {
@@ -168,15 +172,4 @@ fun locationList(genomeQuery: GenomeQuery, vararg locations: Location): Location
 
 fun locationList(genomeQuery: GenomeQuery, locations: Iterable<Location>): LocationList {
     return LocationList.create(genomeQuery, locations)
-}
-
-fun fromBinnedPrediction(gq: GenomeQuery, bins: GenomeMap<BitSet>, bin: Int): LocationList {
-    val builder = LocationList.builder(gq)
-    gq.get().forEach { chr ->
-        bins[chr].stream().forEach {
-            builder.add(Location(it * bin, (it + 1) * bin, chr))
-        }
-
-    }
-    return builder.build()
 }

@@ -1,6 +1,5 @@
 package org.jetbrains.bio.browser.model
 
-import org.jetbrains.bio.genome.GeneAliasType
 import org.jetbrains.bio.genome.Location
 import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.genome.Strand
@@ -64,10 +63,10 @@ class MultipleLocationsBrowserModelTest {
         assertEquals(2, visibleLocations.size)
         assertEquals(50, visibleLocations[0].location.startOffset)
         assertEquals(100, visibleLocations[0].location.endOffset)
-        assertEquals(gene1.getName(GeneAliasType.GENE_SYMBOL), visibleLocations[0].name)
+        assertEquals(gene1.symbol, visibleLocations[0].name)
         assertEquals(200, visibleLocations[1].location.startOffset)
         assertEquals(250, visibleLocations[1].location.endOffset)
-        assertEquals(gene2.getName(GeneAliasType.GENE_SYMBOL), visibleLocations[1].name)
+        assertEquals(gene2.symbol, visibleLocations[1].name)
     }
 
     @Test fun testCopy() {
