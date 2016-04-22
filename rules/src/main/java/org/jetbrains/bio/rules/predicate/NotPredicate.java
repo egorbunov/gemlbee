@@ -10,13 +10,13 @@ import java.util.Objects;
  * @author Oleg Shpynov
  * @since 20.11.14
  */
-public class NotPredicate<T> implements Predicate<T> {
+public class NotPredicate<T> extends Predicate<T> {
   private final Predicate<T> myPredicate;
 
   /**
    * Invariant: predicate is defined and can be negated.
    */
-  protected NotPredicate(final Predicate<T> predicate) {
+  NotPredicate(final Predicate<T> predicate) {
     myPredicate = predicate;
   }
 

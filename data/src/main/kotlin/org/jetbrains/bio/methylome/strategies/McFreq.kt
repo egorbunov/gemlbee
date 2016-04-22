@@ -28,7 +28,7 @@ class McFreq(private val mcContextFilter: CytosineContext?) : McStatStrategy<Met
             require(location.chromosome == samplesData.chromosome)
             require(location.length() == locSize)
 
-            val mcDf = samplesData[location.strand, sampleId]
+            val mcDf = samplesData.get(location.strand, sampleId)
             val rows = MethylomeStats.binarySearch(mcDf, location.startOffset, location.endOffset)
             mcCount += mcDf.count(all(byPatternOptional(mcContextFilter), withMcReads()),
                                   rows.startOffset, rows.endOffset);

@@ -7,6 +7,7 @@ import org.jetbrains.bio.browser.util.TrackUIUtil
 import org.jetbrains.bio.genome.query.GenomeQuery
 import java.awt.Color
 import java.awt.Graphics
+import java.awt.Graphics2D
 import java.util.*
 
 /**
@@ -65,13 +66,14 @@ open class MultiTrackView(val tracks: List<TrackView>, title: String) : TrackVie
             graphics.font = TrackUIUtil.SMALL_FONT
             TrackUIUtil.drawString(graphics,
                                    track.title,
-                                   100, TrackUIUtil.SMALL_FONT_HEIGHT - 3, Color.BLACK)
+                                   100, TrackUIUtil.SMALL_FONT_HEIGHT - 3, Color.BLACK,
+                                   0.6f)
         }
         tracks.last().drawLegend(g, width, height, drawInBG)
     }
 
     private fun createNewGraphics(width: Int, height: Int, g: Graphics, i: Int)
-            = g.create(0, i * height / tracks.size, width, height / tracks.size)
+            = g.create(0, i * height / tracks.size, width, height / tracks.size) as Graphics2D
 
     override fun computeScales(model: SingleLocationBrowserModel,
                                conf: Storage): List<Scale> {

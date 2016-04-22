@@ -147,8 +147,11 @@ class KallistoQuery(
     override fun getUncached(): List<TranscriptAbundance> = result.abundances
 
     override val id: String get() {
-        return arrayOf("kallisto", genome.build, condition.name, suffix)
-                .joinToString("_")
+        val args = arrayListOf("kallisto", genome.build, condition.name)
+        if (suffix.isNotEmpty()) {
+            args.add(suffix)
+        }
+        return args.joinToString("_")
     }
 
     companion object {

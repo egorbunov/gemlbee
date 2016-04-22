@@ -77,7 +77,7 @@ object TrackViewRenderer {
                     trackView.initConfig(locModel, locConf)
                 }
 
-                computeScale(trackView, modelsAndConfigs)
+                config[TrackView.SCALES] = computeScale(trackView, modelsAndConfigs)
 
                 var x = 0
                 for ((locModel, locConf) in modelsAndConfigs) {
@@ -94,20 +94,27 @@ object TrackViewRenderer {
 
                 // Draw common separators in case multi locations model
                 TrackUIUtil.drawGrid(g2d, width, 0, height, modelCopy)
+
+                if (config[TrackView.SHOW_AXIS]) {
+                    g2d.composite = AlphaComposite.SrcOver
+
+                    // 'uiConfig' wasn't initialized. Pick a random location
+                    // config instead.
+                    val (_locModel, locConf) = modelsAndConfigs.first()
+                    trackView.drawAxis(g2d, locConf, width, height, false)
+                }
             } else {
                 val singleModelCopy = modelCopy as SingleLocationBrowserModel
                 trackView.initConfig(singleModelCopy, config)
                 computeScale(trackView, listOf(singleModelCopy to config))
                 trackView.paintTrack(g2d, singleModelCopy, config)
+
+                if (config[TrackView.SHOW_AXIS]) {
+                    g2d.composite = AlphaComposite.SrcOver
+                    trackView.drawAxis(g2d, config, width, height, false)
+                }
             }
 
-            // all have same scale
-            if (config[TrackView.SHOW_AXIS]) {
-                g2d.composite = AlphaComposite.SrcOver
-                trackView.drawAxis(g2d, config, width, height, false)
-            }
-
-            // Draw legend
             if (config[TrackView.SHOW_LEGEND]) {
                 g2d.composite = AlphaComposite.SrcOver
                 trackView.drawLegend(g2d, width, height, false)
@@ -148,7 +155,7 @@ object TrackViewRenderer {
      * using [TrackView.Scale.union].
      */
     private fun computeScale(trackView: TrackView,
-                             modelsAndConfigs: List<Pair<SingleLocationBrowserModel, Storage>>) {
+                             modelsAndConfigs: List<Pair<SingleLocationBrowserModel, Storage>>): List<TrackView.Scale> {
         val commonScales = modelsAndConfigs.map { m2Config ->
             trackView.computeScales(m2Config.first, m2Config.second)
                     .fold(TrackView.Scale.undefined(), TrackView.Scale::union)
@@ -157,5 +164,7 @@ object TrackViewRenderer {
         for ((model, conf) in modelsAndConfigs) {
             conf[TrackView.SCALES] = commonScales
         }
+
+        return commonScales
     }
 }

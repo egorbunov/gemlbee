@@ -105,12 +105,13 @@ object TrackUIUtil {
     /**
      * Draws string on the screen on the white background, useful when printing over track
      */
-    @JvmStatic fun drawString(g: Graphics, string: String, x: Int, y: Int, color: Color) {
+    @JvmOverloads @JvmStatic fun drawString(g: Graphics, string: String, x: Int, y: Int, color: Color,
+                                            bgAlpha: Float = 1.0f) {
         val bounds = g.fontMetrics.getStringBounds(string, g)
         val width = bounds.height.toInt()
         val height = bounds.width.toInt()
 
-        g.color = Color.WHITE
+        g.color = Color(255, 255, 255, (bgAlpha * 255).toInt())
         g.fillRect(x - 1, y - width + 1, height + 2, width + 2)
         g.color = color
         g.drawString(string, x, y)

@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Oleg Shpynov
  * @since 27.4.15
  */
-public class UndefinedPredicate<T> implements Predicate<T> {
+public class UndefinedPredicate<T> extends Predicate<T> {
 
   /**
    * Use {@link Predicate#undefinedPredicate()}

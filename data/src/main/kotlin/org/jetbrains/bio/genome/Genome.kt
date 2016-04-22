@@ -10,11 +10,12 @@ import org.jetbrains.bio.ext.div
 import org.jetbrains.bio.ext.name
 import org.jetbrains.bio.ext.toPath
 import org.jetbrains.bio.genome.query.GenomeQuery
-import org.jetbrains.bio.genome.sequence.NucleotideSequence
 import org.jetbrains.bio.genome.sequence.TwoBitReader
+import org.jetbrains.bio.genome.sequence.TwoBitSequence
 import org.jetbrains.bio.util.Configuration
 import java.io.IOException
 import java.io.UncheckedIOException
+import java.lang.ref.WeakReference
 import java.nio.file.Path
 
 /**
@@ -119,9 +120,22 @@ data class Chromosome private constructor(
 
     val isMitochondrial: Boolean get() = name == "chrM"
 
-    val sequence: NucleotideSequence by lazy {
+    /**
+     * Weak reference for sequence caching
+     */
+    private var sequenceRef: WeakReference<TwoBitSequence> =
+            WeakReference<TwoBitSequence>(null)
+
+    val sequence: TwoBitSequence
+        @Synchronized get() {
+            var s = sequenceRef.get()
+            if (s != null) {
+                return s
+            }
         try {
-            TwoBitReader.read(genome.twoBitPath, name)
+            s = TwoBitReader.read(genome.twoBitPath, name)
+            sequenceRef = WeakReference(s)
+            return s
         } catch (e: IOException) {
             throw UncheckedIOException(
                     "Error loading $name from ${genome.twoBitPath}", e)

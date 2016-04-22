@@ -81,9 +81,9 @@ public class PredicateParserTest extends TestCase {
   }
 
   public void testParseNoPredicate() throws Exception {
-    assertEquals("NO meth",
-                 PredicateParser.parse("NO meth",
-                                       PredicateParser.namesFunction(ImmutableList.of(testPredicate("NO meth")))).getName());
+    assertEquals("NO methylation",
+                 PredicateParser.parse("NO methylation",
+                                       PredicateParser.namesFunction(ImmutableList.of(testPredicate("NO methylation")))).getName());
   }
 
 

@@ -12,10 +12,10 @@ import static com.google.common.base.Preconditions.checkState;
 * @author Oleg Shpynov
 * @since 16.12.14
 */
-public class ParenthesesPredicate<T> implements Predicate<T> {
+public class ParenthesesPredicate<T> extends Predicate<T> {
   private final Predicate<T> myPredicate;
 
-  protected ParenthesesPredicate(final Predicate<T> predicate) {
+  ParenthesesPredicate(final Predicate<T> predicate) {
     myPredicate = predicate;
   }
 

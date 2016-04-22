@@ -15,13 +15,13 @@ import java.util.stream.Stream;
  * @author Oleg Shpynov
  * @since 20/11/14
  */
-public class OrPredicate<T> implements Predicate<T> {
+public class OrPredicate<T> extends Predicate<T> {
   private final List<Predicate<T>> myOperands;
 
   /**
    * Invariant: all operands are defined.
    */
-  protected OrPredicate(final List<Predicate<T>> operands) {
+  OrPredicate(final List<Predicate<T>> operands) {
     myOperands = operands;
   }
 

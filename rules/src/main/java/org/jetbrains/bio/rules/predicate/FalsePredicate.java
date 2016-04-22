@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 * @author Oleg Shpynov
 * @since 18.2.15
 */
-public class FalsePredicate<T> implements Predicate<T> {
+public class FalsePredicate<T> extends Predicate<T> {
 
   /**
    * Use {@link Predicate#falsePredicate()}

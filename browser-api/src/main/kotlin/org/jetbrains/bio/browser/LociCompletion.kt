@@ -25,6 +25,10 @@ object LociCompletion {
                         .toList()
             })
 
+    val LOCI_COMPLETION =
+            intArrayOf(1000, 2000).flatMap { listOf("tss$it", "tes$it", "tss-$it;$it", "tes-$it;$it") } +
+                    LocusType.values().map { if (it === LocusType.TSS_GENE_TES) "genes" else it.toString() }
+
     /**
      * See [.parse]
      */

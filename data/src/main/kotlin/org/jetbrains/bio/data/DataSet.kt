@@ -194,6 +194,8 @@ enum class ChipSeqTarget(val isInput: Boolean = false) {
     // Other
     RNA(),
     PolII(),
+    PolII_phosphoS5(),
+    PolII_phosphoS2(),
     CTCF(),
     DNAse(),
     PpargAb1(),
@@ -239,4 +241,27 @@ interface ChipSeqDataSet : DataSetForwarder {
 
         return tracks.first()
     }
+}
+
+/**
+ * Chip-Seq dataset designed for GEO gsm data aligned using sara naming conventions
+ */
+interface SaraChipSeqDataSet : ChipSeqDataSet {
+    fun strChipseqTarget(target: ChipSeqTarget): String = target.name
+    fun strCellId(cellId: CellId): String = cellId.name
+    fun chipseqRootPath(): Path
+
+    override fun getTracks(genomeQuery: GenomeQuery,
+                           cellId: CellId,
+                           target: ChipSeqTarget): List<BedTrackQuery> {
+        require(target in chipSeqTargets)
+
+        val target_str = strChipseqTarget(target)
+        val cell_str = strCellId(cellId)
+
+        return chipseqRootPath()
+                .glob("**/ChipSeq_${cell_str}_${target_str}_*_${genomeQuery.build}.bed.gz")
+                .map { BedTrackQuery(genomeQuery, it) }
+    }
+
 }

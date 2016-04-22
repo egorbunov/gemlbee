@@ -2,7 +2,8 @@
 
 package org.jetbrains.bio.genome.query.locus
 
-import org.jetbrains.bio.data.POI
+import org.apache.log4j.Logger
+import org.jetbrains.bio.data.DataConfig
 import org.jetbrains.bio.genome.*
 import org.jetbrains.bio.genome.containers.locationList
 import org.jetbrains.bio.genome.containers.minus
@@ -167,6 +168,8 @@ abstract class LocusQuery<Input> protected constructor(protected val locusType: 
     override fun hashCode() = locusType.hashCode()
 
     companion object {
+        val LOG = Logger.getLogger(LocusQuery::class.java)
+
         /**
          * Computes all the Locus for given string, with parameters and steps notation i.e.
          * TSS[500]
@@ -178,7 +181,7 @@ abstract class LocusQuery<Input> protected constructor(protected val locusType: 
             val lBracket = Lexeme("[")
             val rBracket = Lexeme("]")
             val KEYWORDS = setOf(delimiter, lBracket, rBracket, Tokenizer.LBRACE, Tokenizer.RBRACE, Tokenizer.COMMA)
-            if (pattern == POI.ALL) {
+            if (pattern == DataConfig.ALL) {
                 return ImportantGenesAndLoci.REGULATORY
             }
             // Empty case, no params
@@ -225,7 +228,6 @@ abstract class LocusQuery<Input> protected constructor(protected val locusType: 
                     }
                 }
             }
-            POI.LOG.warn("Failed to parse locus: $pattern")
             return emptyList()
         }
     }

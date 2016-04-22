@@ -104,8 +104,8 @@ public class PredicateParser {
     if (lexeme == LPAR) {
       tokenizer.next();
       final Predicate<T> p = parse(tokenizer, factory);
+      tokenizer.check(RPAR);
       Preconditions.checkNotNull(p);
-      Preconditions.checkState(RPAR == tokenizer.fetch());
       // Use direct constructor, because of method can perform complexity transformations
       return new ParenthesesPredicate<>(p);
     }
@@ -118,15 +118,21 @@ public class PredicateParser {
 
     if (!KEYWORDS.contains(lexeme)) {
       // Lookahead
-      for (int l = tokenizer.matchEnd(); l <= tokenizer.getText().length(); l++) {
-        final String lookahead = tokenizer.getText().substring(tokenizer.getTokenOffset(), l).trim();
+      final Match initMatch = tokenizer.getMatch();
+      Match match = initMatch;
+      while (match != null) {
+        final String lookahead = tokenizer.getText().substring(initMatch.getStart(), match.getEnd()).trim();
         final Predicate<T> predicate = factory.apply(lookahead);
         if (predicate != null) {
-          tokenizer.lookahead(new Match(new Lexeme(lookahead), tokenizer.getTokenOffset(), l));
+          tokenizer.lookahead(new Match(new Lexeme(lookahead), initMatch.getStart(), match.getEnd()));
           tokenizer.next();
           return predicate;
         }
+        tokenizer.next();
+        tokenizer.fetch();
+        match = tokenizer.getMatch();
       }
+      tokenizer.lookahead(initMatch);
     }
     throw new IllegalStateException(error(tokenizer));
   }

@@ -1,5 +1,6 @@
 package org.jetbrains.bio.browser.desktop
 
+import com.google.common.annotations.VisibleForTesting
 import org.apache.log4j.Logger
 import org.jetbrains.bio.browser.createAAGraphics
 import org.jetbrains.bio.browser.tasks.CancellableState
@@ -40,8 +41,8 @@ class RenderComponent(val trackView: TrackView,
     //
     // A task can also be cancelled from the AWT thread, for instance,
     // after an appropriate keyboard event.
-    @Volatile private var currentTask: CancellableTask<BufferedImage>? = null
-    @Volatile private var currentImage: BufferedImage? = null
+    @VisibleForTesting @Volatile internal var currentTask: CancellableTask<BufferedImage>? = null
+    @VisibleForTesting @Volatile internal var currentImage: BufferedImage? = null
 
     init {
         trackView.addListener(this)
@@ -134,13 +135,13 @@ class RenderComponent(val trackView: TrackView,
     private fun paintToBuffer(): BufferedImage {
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
         try {
-            // This *can* throw a 'CancellationException'. I'm not sure
-            // why we don't handle it.
             TrackViewRenderer.paintToImage(image,
                                            browser.model.copy(), width, height,
                                            trackView,
                                            CancellableState.current(),
                                            uiModel)
+        } catch (e: CancellationException) {
+            throw e  // Fail the future. Yes, I know.
         } catch (e: Throwable) {
             LOG.error(e)
             val g2d = image.createAAGraphics()

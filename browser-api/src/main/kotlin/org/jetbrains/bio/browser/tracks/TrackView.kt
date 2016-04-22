@@ -27,7 +27,9 @@ abstract class TrackView(title: String) {
         @JvmField val SCALES: Key<List<Scale>> = Key("SCALES")
     }
 
-    var preferredHeight = 50  // Please don't change this default. Why?
+    // Please don't change this default, because other views assumes such default and if it is OK
+    // for them, the views doesn't overload it
+    var preferredHeight = 50
 
     private val listeners = ArrayList<TrackViewListener>(1)
 

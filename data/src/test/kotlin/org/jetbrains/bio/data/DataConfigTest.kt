@@ -14,15 +14,15 @@ import kotlin.test.*
 class DataConfigTest {
     @Test fun consistency() {
         withConfig { config ->
-            assertTrue("H3K4me3" to CellId["test1"] in config.tracks)
-            assertTrue("H3K9me3" to CellId["test1"] in config.tracks)
-            assertTrue("H3K4me3" to CellId["test2"] in config.tracks)
+            assertTrue("H3K4me3" to CellId["test1"] in config.tracksMap)
+            assertTrue("H3K9me3" to CellId["test1"] in config.tracksMap)
+            assertTrue("H3K4me3" to CellId["test2"] in config.tracksMap)
         }
     }
 
     @Test fun labeledConsistency() {
         withConfig { config ->
-            val labeled = config.tracks["H3K4me3" to CellId["test1"]]
+            val labeled = config.tracksMap["H3K4me3" to CellId["test1"]]
             assertTrue(labeled is Section.Labeled)
             assertEquals(setOf("rep1", "rep2"),
                     (labeled as Section.Labeled).replicates.keys)
@@ -31,7 +31,7 @@ class DataConfigTest {
 
     @Test fun implicitConsistency() {
         withConfig { config ->
-            val labeled = config.tracks["H3K4me3" to CellId["test2"]]
+            val labeled = config.tracksMap["H3K4me3" to CellId["test2"]]
             assertTrue(labeled is Section.Implicit)
             assertEquals(1, (labeled as Section.Implicit).paths.size)
         }
@@ -40,6 +40,8 @@ class DataConfigTest {
     @Test fun loadReloadDump() {
         withConfig { config ->
             val writer1 = StringWriter()
+            config.genomeQuery
+            config.tracksMap
             config.save(writer1)
             val save1 = writer1.toString()
             val reloaded = DataConfig.load(save1.reader())
@@ -64,7 +66,7 @@ poi:
 - H3K4me3@tss[-3000..2000]
 """
             val dataConfig = DataConfig.load(config.reader())
-            assertEquals(listOf("all", "H3K4me3@tss[-3000..2000]"), dataConfig.poi.patterns)
+            assertEquals(listOf("all", "H3K4me3@tss[-3000..2000]"), dataConfig.poi)
         }
     }
 
@@ -116,7 +118,7 @@ tracks:
                 override fun getTracks(genomeQuery: GenomeQuery, cellId: CellId, target: ChipSeqTarget): List<BedTrackQuery> =
                         listOf(BedTrackQuery(genomeQuery, tmp, BedFormat.SIMPLE))
             }
-            val config = DataConfig.forDataSet(genome.toQuery(), ds)
+            val config = ds.toDataConfig()
             val writer = StringWriter()
             config.save(writer)
             assertFalse("!" in writer.toString())
@@ -181,10 +183,10 @@ tracks:
       - $p
 """
             val dc = DataConfig.load(config.reader())
-            assertEquals(1, dc.tracks.size)
-            assertEquals(1, dc.tracks.keys.size)
-            assertEquals("(methylation, t)", dc.tracks.keys.first().toString())
-            assert(dc.tracks.values.first() is Section.Implicit)
+            assertEquals(1, dc.tracksMap.size)
+            assertEquals(1, dc.tracksMap.keys.size)
+            assertEquals("(methylation, t)", dc.tracksMap.keys.first().toString())
+            assert(dc.tracksMap.values.first() is Section.Implicit)
         }
     }
 
@@ -199,8 +201,8 @@ tracks:
         b: $p
 """
             val dc = DataConfig.load(config.reader())
-            assert(dc.tracks.values.first() is Section.Labeled)
-            assertEquals("[a, b]", (dc.tracks.values.first() as Section.Labeled).replicates.keys.toString())
+            assert(dc.tracksMap.values.first() is Section.Labeled)
+            assertEquals("[a, b]", (dc.tracksMap.values.first() as Section.Labeled).replicates.keys.toString())
         }
     }
 
@@ -214,10 +216,10 @@ tracks:
       - $p
 """
             val dc = DataConfig.load(config.reader())
-            assertEquals(1, dc.tracks.size)
-            assertEquals(1, dc.tracks.keys.size)
-            assertEquals("(transcription, t)", dc.tracks.keys.first().toString())
-            assert(dc.tracks.values.first() is Section.Implicit)
+            assertEquals(1, dc.tracksMap.size)
+            assertEquals(1, dc.tracksMap.keys.size)
+            assertEquals("(transcription, t)", dc.tracksMap.keys.first().toString())
+            assert(dc.tracksMap.values.first() is Section.Implicit)
         }
     }
 
@@ -232,8 +234,8 @@ tracks:
         b: $p
 """
             val dc = DataConfig.load(config.reader())
-            assert(dc.tracks.values.first() is Section.Labeled)
-            assertEquals("[a, b]", (dc.tracks.values.first() as Section.Labeled).replicates.keys.toString())
+            assert(dc.tracksMap.values.first() is Section.Labeled)
+            assertEquals("[a, b]", (dc.tracksMap.values.first() as Section.Labeled).replicates.keys.toString())
         }
     }
 
@@ -260,7 +262,7 @@ tracks:
                 override fun invoke(dataTypeId: String, condition: CellId, section: Section) {
                     order.add("$dataTypeId $condition")
                 }
-            })(DataConfig.forDataSet(genome.toQuery(), ds))
+            })(ds.toDataConfig())
             assertEquals("[H3K4me3 A, H3K4me3 B, H3K27me3 A, H3K27me3 B, H3K36me3 A, H3K36me3 B]", order.toString())
         }
     }
@@ -273,19 +275,52 @@ rule_min_conviction: 3.0
 rule_max_complexity: 20
 rule_top: 10
 rule_output: 100
+rule_regularizer: 1.5
 tracks:
    H3K4me3:
       t:
       - $p
 """
             val dc = DataConfig.load(config.reader())
-            assertEquals(100, dc.ruleMinSupport)
-            assertEquals(3.0, dc.ruleMinConviction)
-            assertEquals(20, dc.ruleMaxComplexity)
-            assertEquals(10, dc.ruleTop)
-            assertEquals(100, dc.ruleOutput)
+            assertEquals(100, dc.rule_min_support)
+            assertEquals(3.0, dc.rule_min_conviction)
+            assertEquals(20, dc.rule_max_complexity)
+            assertEquals(10, dc.rule_top)
+            assertEquals(100, dc.rule_output)
+            assertEquals(1.5, dc.rule_regularizer)
         }
     }
+
+    @Test fun testParams() {
+        withTempFile("test1", ".bed") { p ->
+            val config = """genome: to1
+tracks:
+   H3K4me3:
+      t:
+      - $p
+"""
+            val dc = DataConfig.load(config.reader())
+            assertEquals("", dc.ruleParams())
+        }
+        withTempFile("test1", ".bed") { p ->
+            val config = """genome: to1
+rule_min_support: 100
+rule_min_conviction: 3.0
+rule_max_complexity: 20
+rule_top: 10
+rule_output: 100
+rule_regularizer: 1.5
+tracks:
+   H3K4me3:
+      t:
+      - $p
+"""
+            val dc = DataConfig.load(config.reader())
+            assertEquals("rule_max_complexity_20_rule_min_conviction_3.0_" +
+                    "rule_min_support_100_rule_output_100_rule_regularizer_1.5", dc.ruleParams())
+        }
+    }
+
 
 
 }

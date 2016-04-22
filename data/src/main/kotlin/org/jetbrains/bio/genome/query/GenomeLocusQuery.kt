@@ -74,15 +74,5 @@ class GenomeLocusQuery<Input, Item> private constructor(
                 override val id: String get() = "unknown"
             }, locusQuery = locusQuery)
         }
-
-        @JvmStatic fun of(text: String): GenomeLocusQuery<Chromosome, *>? {
-            val locusType = LocusType.of(text)
-            if (locusType is LocusType.ChromosomeType) {
-                return of(locusType.createQuery())
-            }
-
-            val geneLocusQuery: LocusQuery<Gene>? = null; // GeneLocusQuery.of(text)
-            return if (geneLocusQuery != null) of(geneLocusQuery, GeneClass.ALL) else null
-        }
     }
 }

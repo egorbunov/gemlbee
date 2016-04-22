@@ -31,8 +31,31 @@ import javax.servlet.http.HttpServletResponse
  * @since 6/8/15
  */
 class BrowserAPITest : TestCase() {
+
+    companion object {
+        val completion = "completion888"
+
+        fun createBrowser(): HeadlessGenomeBrowser {
+            return HeadlessGenomeBrowser(
+                    SingleLocationBrowserModel(GenomeQuery("to1")),
+                    listOf(object : TrackView("test") {
+                        @Throws(CancellationException::class)
+                        override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
+                            try {
+                                Thread.sleep(300)
+                            } catch (e: InterruptedException) {
+                                // Ignore
+                            }
+
+                        }
+                    }),
+                    ImmutableMap.of(completion,
+                            { gq -> listOf(SimpleLocRef(Location(0, 888, Chromosome("to1", "chr1")))) }))
+        }
+    }
+
     private val session = "session"
-    private val completion = "completion888"
+
     private var writer: StringWriter = StringWriter()
     private var response: HttpServletResponse = createResponse()
     private var browser: HeadlessGenomeBrowser = createBrowser()
@@ -48,24 +71,6 @@ class BrowserAPITest : TestCase() {
         Browsers.registerBrowser(browserName, Callable { browser })
         writer = StringWriter()
         response = createResponse()
-    }
-
-    private fun createBrowser(): HeadlessGenomeBrowser {
-        return HeadlessGenomeBrowser(
-                SingleLocationBrowserModel(GenomeQuery("to1")),
-                listOf(object : TrackView("test") {
-                    @Throws(CancellationException::class)
-                    override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
-                        try {
-                            Thread.sleep(300)
-                        } catch (e: InterruptedException) {
-                            // Ignore
-                        }
-
-                    }
-                }),
-                ImmutableMap.of(completion,
-                                { gq -> listOf(SimpleLocRef(Location(0, 888, Chromosome("to1", "chr1")))) }))
     }
 
     private fun createResponse(): HttpServletResponse {
@@ -402,5 +407,15 @@ class BrowserAPITest : TestCase() {
         assertEquals("chr1:25000-35000", browser.model.toString())
     }
 
+    fun testTss() {
+        init()
+        BrowserAPI.request(session, browserName, browser, response, HashMap<String, Array<String>>(), "tss[1000]")
+        assertEquals("tss[1000]:0-40000", browser.model.toString())
+    }
 
+    fun testTssBounds() {
+        init()
+        BrowserAPI.request(session, browserName, browser, response, HashMap<String, Array<String>>(), "tss[-2000..2000]")
+        assertEquals("tss[-2000..2000]:0-80000", browser.model.toString())
+    }
 }

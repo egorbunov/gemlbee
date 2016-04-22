@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Oleg Shpynov
  * @since 18.2.15
  */
-public class TruePredicate<T> implements Predicate<T> {
+public class TruePredicate<T> extends Predicate<T> {
   /**
    * Use {@link Predicate#truePredicate()}
    */

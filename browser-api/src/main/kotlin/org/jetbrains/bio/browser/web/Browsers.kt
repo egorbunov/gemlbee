@@ -33,7 +33,7 @@ object Browsers {
     }
 
     @VisibleForTesting
-    internal fun clear() {
+    fun clear() {
         REGISTERED_BROWSERS.clear()
         tasksCache.invalidateAll()
         clearBrowsesCache()
@@ -61,14 +61,14 @@ object Browsers {
     internal fun getBrowserInitTask(sessionId: String, name: String): CancellableTask<HeadlessGenomeBrowser> {
         require(name in REGISTERED_BROWSERS) { "Unknown browser $name@$sessionId" }
         try {
-            return browsersCache.get(sessionId to name) {
+            return browsersCache[sessionId to name, {
                 CancellableTask.of(Callable {
                     val browser = REGISTERED_BROWSERS[name]!!.call();
                     // Init before usage
                     browser.preprocess()
                     browser
                 })
-            }
+            }]
         } finally {
             // In generally it seems that there should only one genome browser per session,
             // so we can invalidate and unload genome browser for the same session to retain resources.
