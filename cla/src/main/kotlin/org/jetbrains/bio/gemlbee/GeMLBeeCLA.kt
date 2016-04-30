@@ -175,6 +175,12 @@ chr4    55538009    55547347    KLF4    -
         fun trackView(path: Path, genomeQuery: GenomeQuery): TrackView {
             val name = path.name
             return when {
+                
+                name.endsWith(".bb") -> {
+                    LOG.debug("Created Big Bed track view for $path")
+                    bigBedTrackView(path)
+                }
+
                 name.endsWith(".bed") || name.endsWith(".bed.zip") || name.endsWith(".bed.gz") -> {
                     LOG.debug("Created Bed track view for $path")
                     chIPSeqTrackView(genomeQuery, path)
@@ -237,6 +243,8 @@ chr4    55538009    55547347    KLF4    -
             val query = BedTrackQuery(gq, path)
             return BedCovTrackBinnedView(query)
         }
+
+        private fun bigBedTrackView(file: Path) = BigBedTrackView(file, 50)
     }
 
     private fun launch(configs: List<Config>, lociPaths: List<Path>, serverMode: Boolean, port: Int) {
