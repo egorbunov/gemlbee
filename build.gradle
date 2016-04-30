@@ -16,7 +16,6 @@ subprojects {
         maven {
             url 'https://dl.bintray.com/jetbrains-research/maven'
         }
-
         jcenter()
     }
 
@@ -111,6 +110,14 @@ project(':cla') {
     }
 }
 
+project(':query') {
+    dependencies {
+        compile project(':rules')
+        compile project(':util')
+        compile project(':browser-tracks')
+    }
+}
+
 project(':rules') {
     dependencies {
         compile project(':util')
@@ -122,6 +129,7 @@ project(':util') {
         compile 'log4j:log4j:1.2.+'
     }
 }
+
 
 task wrapper(type: Wrapper) {
     gradleVersion = '2.10'
