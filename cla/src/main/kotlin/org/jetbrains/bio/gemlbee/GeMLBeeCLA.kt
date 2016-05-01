@@ -22,6 +22,8 @@ import org.jetbrains.bio.browser.web.ServerUtil
 import org.jetbrains.bio.data.DataConfig
 import org.jetbrains.bio.ext.*
 import org.jetbrains.bio.genome.*
+import org.jetbrains.bio.genome.containers.LocationList
+import org.jetbrains.bio.genome.containers.minus
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.jetbrains.bio.histones.BedTrackQuery
 import org.jetbrains.bio.io.BedEntry
@@ -175,7 +177,36 @@ chr4    55538009    55547347    KLF4    -
         fun trackView(path: Path, genomeQuery: GenomeQuery): TrackView {
             val name = path.name
             return when {
-                
+                name.equals("locations_test") -> {
+                    // TODO: delete this
+                    LOG.debug("Creating locations test track")
+                    val chr = ChromosomeNamesMap.create(genomeQuery)["chr1"]!!
+                    val locations = with(ArrayList<Location>()) {
+                        val d = 2000000
+                        for (i in chr.range.startOffset..chr.range.endOffset step d) {
+                            add(Location(i, i + d / 2, chr))
+                        }
+                        this
+                    }
+                    Location(chr.range.startOffset, chr.range.endOffset, chr) - locations
+                    LocationsTrackView(LocationList.create(genomeQuery, locations), "Test Locations Track")
+                }
+
+                name.equals("locations_negate_test") -> {
+                    // TODO: delete this
+                    LOG.debug("Creating negation locations test track")
+                    val chr = ChromosomeNamesMap.create(genomeQuery)["chr1"]!!
+                    val locations = with(ArrayList<Location>()) {
+                        val d = 2000000
+                        for (i in chr.range.startOffset..chr.range.endOffset step d) {
+                            add(Location(i, i + d / 2, chr))
+                        }
+                        this
+                    }
+                    val nl = Location(chr.range.startOffset, chr.range.endOffset, chr) - locations
+                    LocationsTrackView(LocationList.create(genomeQuery, nl), "Test Negation Locations Track")
+                }
+
                 name.endsWith(".bb") -> {
                     LOG.debug("Created Big Bed track view for $path")
                     bigBedTrackView(path)
