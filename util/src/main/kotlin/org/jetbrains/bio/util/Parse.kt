@@ -1,6 +1,7 @@
 package org.jetbrains.bio.util
 
 import com.google.common.primitives.Ints
+import java.util.*
 
 
 /**
@@ -41,6 +42,8 @@ class Tokenizer(val text: String, val keywords: Set<Lexeme>) {
 
     var match: Match? = null
     var tokenOffset: Int = 0
+    private var backtraceStack = ArrayList<Pair<Int, Match?>>()
+
 
     fun matchEnd(): Int {
         check(match != null) { "Nothing matched!" }
@@ -119,6 +122,42 @@ class Tokenizer(val text: String, val keywords: Set<Lexeme>) {
     fun checkEnd() {
         // Check everything is parsed
         check(atEnd()) { "Not all the params text was parsed $this" }
+    }
+
+    /**
+     * Adds bookmark = current state (i.e. match and cursor offset) to backtrace stack
+     */
+    fun addBookmark() {
+        backtraceStack.add(Pair(tokenOffset, match?.copy()))
+    }
+
+    /**
+     * Checks for lexeme, and in case of failure returns {@code false}, instead of throwing exception
+     * and moves forward if success
+     */
+    fun softCheck(expected: Lexeme): Boolean {
+        try {
+            check(expected)
+        } catch (e: IllegalStateException) {
+            return false
+        }
+        return true
+    }
+
+    /**
+     * restores tokenizer state to state, when last bookmark was set
+     */
+    fun returnBack() {
+        val p = backtraceStack.last()
+        tokenOffset = p.first
+        match = p.second
+    }
+
+    /**
+     * just pops last bookmark
+     */
+    fun popBookmark() {
+        backtraceStack.removeAt(backtraceStack.size - 1)
     }
 
     override fun toString(): String = "Text: $text; Offset: $tokenOffset; Text at offset: ${text.substring(tokenOffset)}; Match: $match"
