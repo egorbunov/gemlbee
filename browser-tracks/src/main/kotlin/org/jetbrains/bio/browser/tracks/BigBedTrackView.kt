@@ -18,8 +18,8 @@ import java.nio.file.Path
  * @author Sergei Lebedev
  * @since 24/07/15
  */
-class BigBedTrackView(path: Path, private val numBins: Int) : TrackView(path.name) {
-    private val bbf = BigBedFile.read(path)
+class BigBedTrackView(path: Path, val numBins: Int) : TrackView(path.name) {
+    val bbf = BigBedFile.read(path)
 
     override fun paintTrack(g: Graphics, model: SingleLocationBrowserModel, conf: Storage) {
         val width = conf[TrackView.WIDTH]
@@ -54,7 +54,7 @@ class BigBedTrackView(path: Path, private val numBins: Int) : TrackView(path.nam
     }
 }
 
-private fun BigFile<*>.summarize(query: ChromosomeRange, numBins: Int): List<BigSummary> {
+fun BigFile<*>.summarize(query: ChromosomeRange, numBins: Int): List<BigSummary> {
     return summarize(query.chromosome.name,
                      query.startOffset,
                      query.endOffset,
