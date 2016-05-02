@@ -12,8 +12,8 @@ import org.jetbrains.bio.genome.ChromosomeRange
 /**
  * Root AST node class
  */
-abstract class Statement {
-    abstract fun accept(visitor: TreeVisitor)
+abstract class Statement: Comparable<Statement> {
+    abstract fun <T> accept(visitor: TreeVisitor<T>): T
 }
 
 /**
@@ -26,8 +26,12 @@ abstract class GeneratedTrack: Statement() {
  * show id
  */
 class ShowTrackStatement(val track: GeneratedTrack) : Statement() {
-    override fun accept(visitor: TreeVisitor) {
-        visitor.visit(this)
+    override fun compareTo(other: Statement): Int {
+        return if (other !is ShowTrackStatement) 1 else return track.compareTo(other.track)
+    }
+
+    override fun <T> accept(visitor: TreeVisitor<T>): T {
+        return visitor.visit(this)
     }
 }
 
@@ -35,7 +39,11 @@ class ShowTrackStatement(val track: GeneratedTrack) : Statement() {
  * id <- expr
  */
 class AssignStatement(val id: String, val track: GeneratedTrack) : Statement() {
-    override fun accept(visitor: TreeVisitor) {
-        visitor.visit(this)
+    override fun compareTo(other: Statement): Int {
+        return if (other !is AssignStatement || id != other.id) 1 else track.compareTo(other.track)
+    }
+
+    override fun <T> accept(visitor: TreeVisitor<T>): T {
+        return visitor.visit(this)
     }
 }

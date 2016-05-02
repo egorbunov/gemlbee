@@ -9,6 +9,11 @@ import org.jetbrains.bio.genome.ChromosomeRange
  */
 
 class BigBedFileTrack(val id: String, val bbf: BigBedFile): ArithmeticTrack() {
+    override fun compareTo(other: Statement): Int {
+        return if (other is BigBedFileTrack && id == other.id) 0 else 1 // TODO: Is that enough?
+    }
+
+
     override fun eval(range: ChromosomeRange, binsNum: Int): List<Double> {
         return bbf.summarize(range.chromosome.name,
                 range.startOffset,
@@ -16,7 +21,7 @@ class BigBedFileTrack(val id: String, val bbf: BigBedFile): ArithmeticTrack() {
                 binsNum).map { it.sum }
     }
 
-    override fun accept(visitor: TreeVisitor) {
-        visitor.visit(this)
+    override fun <T> accept(visitor: TreeVisitor<T>): T {
+        return visitor.visit(this)
     }
 }

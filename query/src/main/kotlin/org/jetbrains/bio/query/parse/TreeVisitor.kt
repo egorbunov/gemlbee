@@ -5,27 +5,19 @@ package org.jetbrains.bio.query.parse
  * @since 02.05.16
  */
 
-interface TreeVisitor {
-    fun visit(node: BinaryArithmeticTrack)
-    fun visit(node: NumericTrack)
-    fun visit(node: AssignStatement)
-    fun visit(node: ShowTrackStatement)
-    fun visit(node: IfStatementTrack)
-    fun visit(node: NotPredicateTrack)
-    fun visit(node: OrPredicateTrack)
-    fun visit(node: AndPredicateTrack)
-    fun visit(node: FalsePredicateTrack)
-    fun visit(node: TruePredicateTrack)
-    fun visit(node: RelationPredicateTrack)
-    fun visit(node: BigBedFileTrack)
-
-    fun visit(node: Statement) {
-        throw UnsupportedOperationException()
-    }
-
-    fun visit(node: GeneratedTrack) {
-        throw UnsupportedOperationException()
-    }
-
-
+interface TreeVisitor<T> {
+    fun visit(node: BinaryArithmeticTrack): T
+    fun visit(node: NumericTrack): T
+    fun visit(node: AssignStatement): T
+    fun visit(node: ShowTrackStatement): T
+    fun visit(node: IfStatementTrack): T
+    fun visit(node: NotPredicateTrack): T
+    fun visit(node: OrPredicateTrack): T
+    fun visit(node: AndPredicateTrack): T
+    fun visit(node: FalsePredicateTrack): T
+    fun visit(node: TruePredicateTrack): T
+    fun visit(node: RelationPredicateTrack): T
+    fun visit(node: BigBedFileTrack): T
+    fun visit(node: NamedArithmeticTrack): T
+    fun visit(node: NamedPredicateTrack): T
 }

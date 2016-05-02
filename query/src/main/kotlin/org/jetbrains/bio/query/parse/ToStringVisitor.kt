@@ -5,8 +5,7 @@ package org.jetbrains.bio.query.parse
  * @since 02.05.16
  */
 
-class ToStringVisitor: TreeVisitor {
-
+class ToStringVisitor: TreeVisitor<Unit> {
     var sb = StringBuilder()
 
     fun getString(): String {
@@ -89,10 +88,10 @@ class ToStringVisitor: TreeVisitor {
 
         sb.append(" AND ")
 
-        np = node.rhs is AndPredicateTrack || node.rhs is RelationPredicateTrack
-        if (!np) sb.append("(")
+        np = node.rhs is OrPredicateTrack
+        if (np) sb.append("(")
         node.rhs.accept(this)
-        if (!np) sb.append(")")
+        if (np) sb.append(")")
     }
 
     override fun visit(node: OrPredicateTrack) {
@@ -102,11 +101,15 @@ class ToStringVisitor: TreeVisitor {
     }
 
     override fun visit(node: RelationPredicateTrack) {
-        sb.append("(")
+        if (node.lhs is IfStatementTrack) sb.append("(")
         node.lhs.accept(this)
+        if (node.lhs is IfStatementTrack) sb.append(")")
+
         sb.append(" ${node.op.str} ")
+
+        if (node.rhs is IfStatementTrack) sb.append("(")
         node.rhs.accept(this)
-        sb.append(")")
+        if (node.rhs is IfStatementTrack) sb.append(")")
     }
 
     override fun visit(node: FalsePredicateTrack) {
@@ -118,6 +121,13 @@ class ToStringVisitor: TreeVisitor {
     }
 
     override fun visit(node: BigBedFileTrack) {
+        sb.append(node.id)
+    }
+
+    override fun visit(node: NamedArithmeticTrack) {
+        sb.append(node.id)
+    }
+    override fun visit(node: NamedPredicateTrack) {
         sb.append(node.id)
     }
 }
