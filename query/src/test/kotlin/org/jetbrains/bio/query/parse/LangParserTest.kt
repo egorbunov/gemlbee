@@ -155,9 +155,9 @@ class LangParserTest(val query: String, val expectedStatement: Statement) {
         val parser = LangParser(query, arithmeticTracksMap, predicateTracksMap)
         val st = parser.parse()!!
 
-        val toStr = ToStringVisitor()
-        st.accept(toStr)
-        println(toStr.getString())
+//        val toStr = ToStringVisitor()
+//        st.accept(toStr)
+//        println(toStr.getString())
 
         Assert.assertEquals(st.compareTo(expectedStatement), 0)
     }
