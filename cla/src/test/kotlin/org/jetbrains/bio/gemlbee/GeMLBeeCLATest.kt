@@ -78,7 +78,7 @@ class GeMLBeeCLATest {
             (tmpDir / "foo.fastq.gz").touch()
             (tmpDir / "foo.txt").touch()
 
-            val config = Config(gq, listOf(tmpDir))
+            val config = Config(gq, listOf(Pair("noname", tmpDir)))
             assert(GeMLBeeCLA.trackView(tmpDir, config.genomeQuery) is KallistoTrackView)
         }
     }

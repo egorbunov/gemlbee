@@ -6,6 +6,7 @@ import org.jetbrains.bio.ext.toPath
 import org.jetbrains.bio.genome.query.GenomeQuery
 import java.io.Reader
 import java.nio.file.Path
+import java.util.*
 
 /**
  * @author Roman.Chernyatchik
@@ -14,14 +15,14 @@ class Config(
         /** A genome query, which specifies genome build and chromosome restriction. */
         val genomeQuery: GenomeQuery,
 
-        /** Data tracks */
-        val tracks: List<Path>) {
+        /** Data tracks (track paired with it's name; name may be empty) */
+        val tracks: List<Pair<String, Path>>) {
 
     companion object {
         val FORMAT = """YAML configuration for genome browser:
 genome: <UCSC genome>
 tracks:
-- path/to/datafile
+- [name:] path/to/datafile
 -----
 ${DataConfig.GENOME_DESCRIPTION}
 -----
@@ -40,7 +41,7 @@ ${DataConfig.SUPPORTED_FILE_FORMATS}
          */
         class Proxy() {
             @JvmField var genome: String = ""
-            @JvmField var tracks: List<String>? = null
+            @JvmField var tracks: List<Any>? = null
         }
 
 
@@ -51,7 +52,22 @@ ${DataConfig.SUPPORTED_FILE_FORMATS}
                 val genome = proxy.genome
                 require(genome.isNotEmpty()) { "Missing or empty genome" }
                 requireNotNull(proxy.tracks) { "Missing or empty tracks" }
-                return Config(GenomeQuery.Companion.parse(genome), proxy.tracks!!.map { it.toPath() })
+
+                val tracks = proxy.tracks!!.map {
+                    if (it is Map<*, *>) {
+                        Pair((it.entries.first().key as String).trim(),
+                                (it.entries.first().value as String).toPath())
+                    } else {
+                        Pair("", (it as String).toPath())
+                    }
+                }
+
+                tracks.filter { !it.first.isEmpty() }.groupBy { it.first }
+                        .filter { it.value.size > 1 }.forEach {
+                    require(false) { "Track names must be unique, but name [${it.key}] used [${it.value.size}] times"}
+                }
+
+                return Config(GenomeQuery.Companion.parse(genome), tracks)
             }
             return null
         }

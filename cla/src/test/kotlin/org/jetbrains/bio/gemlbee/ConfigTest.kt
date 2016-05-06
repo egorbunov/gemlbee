@@ -16,7 +16,7 @@ class ConfigTest {
         assertEquals("""YAML configuration for genome browser:
 genome: <UCSC genome>
 tracks:
-- path/to/datafile
+- [name:] path/to/datafile
 -----
 Genome:
 See https://genome.ucsc.edu/FAQ/FAQreleases.html
@@ -49,8 +49,8 @@ Supported file formats:
 
     @Test fun loadTracks() {
         withConfig { config ->
-            assertTrue(config.tracks[0].fileName.toString().endsWith("test1.bed"))
-            assertTrue(config.tracks[1].fileName.toString().endsWith("test2.tdf"))
+            assertTrue(config.tracks[0].second.fileName.toString().endsWith("test1.bed"))
+            assertTrue(config.tracks[1].second.fileName.toString().endsWith("test2.tdf"))
         }
     }
 
@@ -112,6 +112,31 @@ tracks:
                 assertNull(Config.load(yamlReader))
             }
         }
+    }
+
+    @Test fun testTrackNames() {
+        val cfg = Config.Companion.load(
+                """
+                genome: hg42
+                tracks:
+                    - name1: path1
+                    - name2: path2
+                    - path3
+                """.reader())
+        assertEquals("name1", cfg.tracks[0].first)
+        assertEquals("name2", cfg.tracks[1].first)
+        assertEquals("", cfg.tracks[2].first)
+    }
+
+
+    @Test(expected = IllegalArgumentException::class) fun testUniqueTrackNames() {
+        Config.Companion.load(
+                """
+                genome: hg42
+                tracks:
+                    - name1: path1
+                    - name1: path2
+                """.reader())
     }
 
     private fun withConfig(chrsFilter: String = "",
