@@ -11,10 +11,13 @@ import org.jetbrains.bio.browser.model.ModelListener
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.tracks.TrackView
 import org.jetbrains.bio.genome.query.GenomeQuery
+import org.jetbrains.bio.query.DesktopInterpreter
+import org.jetbrains.bio.query.NewTrackViewListener
 import org.jetbrains.bio.util.Logs
 import java.awt.Dimension
 import java.awt.Point
 import java.awt.Toolkit
+import java.util.*
 import javax.swing.*
 
 /**
@@ -27,8 +30,9 @@ import javax.swing.*
  * @author Roman Chernyatchik
  */
 class DesktopGenomeBrowser(browserModel: BrowserModel,
-                           override val trackViews: List<TrackView>,
-                           locationsMap: Map<String, (GenomeQuery) -> List<LocationReference>>)
+                           override val trackViews: ArrayList<TrackView>,
+                           locationsMap: Map<String, (GenomeQuery) -> List<LocationReference>>,
+                           val interpreter: DesktopInterpreter)
 :
         GenomeBrowser {
 
@@ -57,10 +61,21 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
         override fun modelChanged() = trackViews.forEach(TrackView::fireRepaintRequired)
     }
 
+    private val newTrackViewListener = object : NewTrackViewListener {
+        override fun addNewTrackView(trackView: TrackView) {
+            trackViews.add(trackView)
+            // TODO: maybe need better interface for adding tracks
+            mainPanel.trackListComponent.addTrack(trackView, trackViews.size - 1, true)
+            modelListener.modelChanged()
+        }
+    }
+
     init {
         Logs.addConsoleAppender(Level.INFO)
         require(trackViews.isNotEmpty())
         browserModel.addListener(modelListener)
+        // listening for new track views...
+        interpreter.addNewTrackListener(newTrackViewListener)
     }
 
     override fun execute(command: Command?) {
@@ -105,9 +120,12 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
         BrowserSplash.close()
     }
 
-    fun handlePositionChanged(text: String) {
+    /**
+     * Returns error message or null if ok
+     */
+    fun handlePositionChanged(text: String): String? {
         if (handleMultipleLocationsModel(text)) {
-            return
+            return null
         }
 
         val model = model as SingleLocationBrowserModel
@@ -116,27 +134,32 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
             try {
                 execute(model.goTo(locRef))
             } catch (e: Exception) {
-                JOptionPane.showMessageDialog(mainPanel.parent,
-                                              e.message,
-                                              "Go To Location",
-                                              JOptionPane.ERROR_MESSAGE)
+                return e.message
+//                JOptionPane.showMessageDialog(mainPanel.parent,
+//                                              e.message,
+//                                              "Go To Location",
+//                                              JOptionPane.ERROR_MESSAGE)
             }
 
         } else {
-            JOptionPane.showMessageDialog(mainPanel.parent,
-                                          "Illegal location: " + text,
-                                          "Go To Location",
-                                          JOptionPane.ERROR_MESSAGE)
+            return "Illegal location: " + text
+//            JOptionPane.showMessageDialog(mainPanel.parent,
+//                                          "Illegal location: " + text,
+//                                          "Go To Location",
+//                                          JOptionPane.ERROR_MESSAGE)
         }
+
+        return null
     }
 
     companion object {
         val GEMLBEE = "GeMLBee - Genome Multiple Locations Browser"
 
-        operator fun invoke(genomeQuery: GenomeQuery, trackViews: List<TrackView>): DesktopGenomeBrowser {
+        operator fun invoke(genomeQuery: GenomeQuery, trackViews: ArrayList<TrackView>,
+                            interpreter: DesktopInterpreter): DesktopGenomeBrowser {
             return DesktopGenomeBrowser(SingleLocationBrowserModel(genomeQuery),
                                         trackViews,
-                                        LociCompletion.DEFAULT_COMPLETION)
+                                        LociCompletion.DEFAULT_COMPLETION, interpreter)
         }
     }
 }

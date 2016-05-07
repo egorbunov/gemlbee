@@ -70,6 +70,7 @@ project(':browser-api') {
 
         compile project(':data')
         compile project(':util')
+        compile project(':query-desktop')
     }
 }
 
@@ -107,13 +108,21 @@ project(':cla') {
     dependencies {
         compile project(':browser-api')
         compile project(':browser-tracks')
+        compile project(':query-desktop')
     }
 }
 
 project(':query') {
     dependencies {
+        compile project(':data')
         compile project(':rules')
         compile project(':util')
+    }
+}
+
+project(':query-desktop') {
+    dependencies {
+        compile project(':query')
         compile project(':browser-tracks')
     }
 }

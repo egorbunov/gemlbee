@@ -539,13 +539,12 @@ public class TrackListComponent extends JPanel {
     }
   }
 
-  private void addTrack(final TrackView trackView, final int index, final boolean fireEvent) {
+  public void addTrack(final TrackView trackView, final int index, final boolean fireEvent) {
     myTrackViews.add(index, trackView);
     if (fireEvent) {
       fireTrackViewsListChanged();
     }
   }
-
 
   private void fireTrackViewsListChanged() {
     // 0. filter track view components

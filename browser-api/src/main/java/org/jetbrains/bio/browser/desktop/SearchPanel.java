@@ -2,6 +2,7 @@ package org.jetbrains.bio.browser.desktop;
 
 import com.jidesoft.swing.AutoCompletion;
 import kotlin.Pair;
+import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.bio.browser.model.BrowserModel;
 import org.jetbrains.bio.browser.model.ModelListener;
@@ -15,10 +16,12 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 
+
 /**
  * @author Evgeny.Kurbatsky
  */
 public class SearchPanel extends JPanel {
+    private final Logger LOG = Logger.getLogger(SearchPanel.class);
     private final DesktopGenomeBrowser myBrowser;
 
     private final JTextComponent myPositionComponent;
@@ -100,7 +103,25 @@ public class SearchPanel extends JPanel {
                     // clear selection
                     textEditorComponent.setSelectionStart(0);
                     textEditorComponent.setSelectionEnd(0);
-                    myBrowser.handlePositionChanged(text);
+
+                    String title = "Go To Location";
+                    String error = myBrowser.handlePositionChanged(text);
+                    if (error == null)
+                        return;
+
+                    try {
+                        LOG.info("Interpreting query [" + text + "]");
+                        myBrowser.getInterpreter().interpret(text);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this,
+                                ex.getMessage(),
+                                "Query Parser",
+                                JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this,
+                                error,
+                                title,
+                                JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             }
         });

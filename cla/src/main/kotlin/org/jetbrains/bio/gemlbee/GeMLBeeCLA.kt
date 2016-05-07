@@ -31,6 +31,9 @@ import org.jetbrains.bio.io.BedFormat
 import org.jetbrains.bio.io.LiftOverRemapper
 import org.jetbrains.bio.methylome.CytosineContext
 import org.jetbrains.bio.methylome.MethylomeQuery
+import org.jetbrains.bio.query.DesktopInterpreter
+import org.jetbrains.bio.query.parse.NumericTrack
+import org.jetbrains.bio.query.tracks.ArithmeticTrackView
 import org.jetbrains.bio.transcriptome.KallistoQuery
 import org.jetbrains.bio.transcriptome.fastqReads
 import org.jetbrains.bio.util.Configuration
@@ -174,9 +177,18 @@ chr4    55538009    55547347    KLF4    -
             return configs
         }
 
+        /**
+         * trackInfo is Pair(Track alias, Path)
+         */
         fun trackView(path: Path, genomeQuery: GenomeQuery): TrackView {
             val name = path.name
             return when {
+                name.equals("arithmetic_track_test") -> {
+                    // TODO: delete this
+                    LOG.debug("Creating test arithmetic track")
+                    ArithmeticTrackView("Arithmetic_track_test", NumericTrack(1.0))
+                }
+
                 name.equals("locations_test") -> {
                     // TODO: delete this
                     LOG.debug("Creating locations test track")
@@ -298,13 +310,17 @@ chr4    55538009    55547347    KLF4    -
         }
 
         LOG.info("Processing configuration data tracks")
-        configureTracks(configs, master, tracks)
+        val aliasedTrackViews = HashMap<String, TrackView>()
+        configureTracks(configs, master, tracks, aliasedTrackViews)
+
+        LOG.info("Setting up query interpreter")
+        val interpreter = DesktopInterpreter(aliasedTrackViews)
 
         LOG.info("Starting browser..")
         if (serverMode) {
             serverMode(HeadlessGenomeBrowser(model, tracks, completionGroups), port)
         } else {
-            DesktopGenomeBrowser(model, tracks, completionGroups).show()
+            DesktopGenomeBrowser(model, tracks, completionGroups, interpreter).show()
         }
     }
 
@@ -362,13 +378,19 @@ chr4    55538009    55547347    KLF4    -
         ServerUtil.startServer(port, handlers)
     }
 
-    private fun configureTracks(configs: List<Config>, master: GenomeQuery, tracks: ArrayList<TrackView>) {
+    private fun configureTracks(configs: List<Config>, master: GenomeQuery, tracks: ArrayList<TrackView>,
+                                aliasedTrackViews: HashMap<String, TrackView>) {
         for (config in configs) {
-            for (path in config.tracks) {
-                val trackView = trackView(path, config.genomeQuery)
+            for (t in config.tracks) {
+                val trackView = trackView(t.second, config.genomeQuery)
                 val gq = config.genomeQuery
                 if (master == gq) {
                     tracks.add(trackView)
+
+                    // TODO: what to do if master != gq?
+                    if (!t.first.isEmpty()) {
+                        aliasedTrackViews.put(t.first, trackView)
+                    }
                 } else {
                     tracks.add(LiftOverTrackView(trackView, master, gq))
                 }
