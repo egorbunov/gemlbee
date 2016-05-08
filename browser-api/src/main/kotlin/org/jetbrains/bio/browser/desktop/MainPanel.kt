@@ -63,6 +63,13 @@ class MainPanel(browser: DesktopGenomeBrowser, trackViews: List<TrackView>) : JP
         mainMenu.add(navigationMenu)
         mainMenu.add(miscMenu)
     }
+
+    /**
+     * Adds track view to the end of TrackListComponent
+     */
+    fun addTrackView(trackView: TrackView) {
+        trackListComponent.addTrack(trackView)
+    }
 }
 
 class NavigationMenu : JMenu("Navigation") {
