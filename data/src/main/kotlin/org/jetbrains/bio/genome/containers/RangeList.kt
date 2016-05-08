@@ -139,8 +139,8 @@ class RangeList internal constructor(
  *
  * Input ranges may be in any order and are allowed to overlap.
  */
-operator fun Range.minus(ranges: List<Range>): List<Range> {
-    if (ranges.isEmpty()) {
+operator fun Range.minus(ranges: Iterable<Range>): List<Range> {
+    if (!ranges.any()) {
         return listOf(this)
     }
 
