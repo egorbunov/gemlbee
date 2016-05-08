@@ -16,6 +16,13 @@ import org.jetbrains.bio.query.parse.PredicateTrack
 class PredicateTrackView(name: String,
                          val track: PredicateTrack) : LocationAwareTrackView<Location>(name) {
 
+    private fun calc(model: SingleLocationBrowserModel): List<Location> {
+        val start = model.chromosomeRange.startOffset
+        val lst = track.eval(model.chromosomeRange, model.chromosomeRange.length())
+        return emptyList()
+    }
+
+
     override fun getItems(model: SingleLocationBrowserModel): Iterable<Location> {
         throw UnsupportedOperationException()
     }

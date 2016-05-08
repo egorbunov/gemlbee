@@ -15,17 +15,7 @@ import java.util.*
  */
 
 class FixBinnedArithmeticTrackView(name: String, val track: ArithmeticTrack, val binsNum: Int = 50): TrackView(name) {
-    private val cache = HashMap<String, List<Double>>()
-
-    /**
-     * TODO: caching?
-     */
-    private fun cacheAndGet(model: SingleLocationBrowserModel): List<Double> {
-//        val r = model.chromosome.range // whole chromosome range
-//        return cache.getOrPut(model.chromosome.name) {
-//            track.eval(ChromosomeRange(r.startOffset, r.endOffset, model.chromosome), binsNum)
-//        }.slice(model.chromosomeRange.startOffset..model.chromosomeRange.endOffset)
-
+    private fun getData(model: SingleLocationBrowserModel): List<Double> {
         return track.eval(model.chromosomeRange, binsNum);
     }
 
@@ -33,10 +23,10 @@ class FixBinnedArithmeticTrackView(name: String, val track: ArithmeticTrack, val
 
         val width = conf[TrackView.WIDTH]
         val height = conf[TrackView.HEIGHT]
-        val (_min, max) = conf[TrackView.SCALES].first()
+        val (_ignored, max) = conf[TrackView.SCALES].first()
         val step = width / binsNum
 
-        cacheAndGet(model).forEachIndexed { i, s ->
+        getData(model).forEachIndexed { i, s ->
             val h = (s / max * height).toInt()
             g.color = Color.CYAN
             g.fillRect(i * step, height - h, step, h)
@@ -45,7 +35,7 @@ class FixBinnedArithmeticTrackView(name: String, val track: ArithmeticTrack, val
 
     override fun computeScales(model: SingleLocationBrowserModel,
                                conf: Storage): List<Scale> {
-        val max = Math.ceil(cacheAndGet(model).max()!!)
+        val max = Math.ceil(getData(model).max()!!)
         return listOf(Scale(0.0, max))
     }
 
