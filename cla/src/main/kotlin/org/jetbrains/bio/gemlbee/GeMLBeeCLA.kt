@@ -33,7 +33,7 @@ import org.jetbrains.bio.methylome.CytosineContext
 import org.jetbrains.bio.methylome.MethylomeQuery
 import org.jetbrains.bio.query.DesktopInterpreter
 import org.jetbrains.bio.query.parse.NumericTrack
-import org.jetbrains.bio.query.tracks.ArithmeticTrackView
+import org.jetbrains.bio.query.tracks.FixBinnedArithmeticTrackView
 import org.jetbrains.bio.transcriptome.KallistoQuery
 import org.jetbrains.bio.transcriptome.fastqReads
 import org.jetbrains.bio.util.Configuration
@@ -186,7 +186,7 @@ chr4    55538009    55547347    KLF4    -
                 name.equals("arithmetic_track_test") -> {
                     // TODO: delete this
                     LOG.debug("Creating test arithmetic track")
-                    ArithmeticTrackView("Arithmetic_track_test", NumericTrack(1.0))
+                    FixBinnedArithmeticTrackView("Arithmetic_track_test", NumericTrack(1.0))
                 }
 
                 name.equals("locations_test") -> {
@@ -310,11 +310,10 @@ chr4    55538009    55547347    KLF4    -
         }
 
         LOG.info("Processing configuration data tracks")
-        val aliasedTrackViews = HashMap<String, TrackView>()
-        configureTracks(configs, master, tracks, aliasedTrackViews)
+        configureTracks(configs, master, tracks)
 
         LOG.info("Setting up query interpreter")
-        val interpreter = DesktopInterpreter(aliasedTrackViews)
+        val interpreter = DesktopInterpreter(tracks)
 
         LOG.info("Starting browser..")
         if (serverMode) {
@@ -378,19 +377,14 @@ chr4    55538009    55547347    KLF4    -
         ServerUtil.startServer(port, handlers)
     }
 
-    private fun configureTracks(configs: List<Config>, master: GenomeQuery, tracks: ArrayList<TrackView>,
-                                aliasedTrackViews: HashMap<String, TrackView>) {
+    private fun configureTracks(configs: List<Config>, master: GenomeQuery, tracks: ArrayList<TrackView>) {
         for (config in configs) {
             for (t in config.tracks) {
                 val trackView = trackView(t.second, config.genomeQuery)
                 val gq = config.genomeQuery
                 if (master == gq) {
+                    trackView.alias = t.first
                     tracks.add(trackView)
-
-                    // TODO: what to do if master != gq?
-                    if (!t.first.isEmpty()) {
-                        aliasedTrackViews.put(t.first, trackView)
-                    }
                 } else {
                     tracks.add(LiftOverTrackView(trackView, master, gq))
                 }

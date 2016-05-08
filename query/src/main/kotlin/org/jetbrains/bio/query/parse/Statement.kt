@@ -22,7 +22,6 @@ abstract class Statement: Comparable<Statement> {
 abstract class GeneratedTrack: Statement() {
 }
 
-
 /**
  * show id
  */

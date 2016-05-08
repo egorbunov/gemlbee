@@ -3,6 +3,7 @@ package org.jetbrains.bio.query.tracks
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.tracks.TrackView
 import org.jetbrains.bio.browser.util.Storage
+import org.jetbrains.bio.browser.util.TrackUIUtil
 import org.jetbrains.bio.query.parse.ArithmeticTrack
 import java.awt.Color
 import java.awt.Graphics
@@ -13,7 +14,7 @@ import java.util.*
  * @since 01.05.16
  */
 
-class ArithmeticTrackView(name: String, val track: ArithmeticTrack, val binsNum: Int = 50): TrackView(name) {
+class FixBinnedArithmeticTrackView(name: String, val track: ArithmeticTrack, val binsNum: Int = 50): TrackView(name) {
     private val cache = HashMap<String, List<Double>>()
 
     /**
@@ -37,7 +38,7 @@ class ArithmeticTrackView(name: String, val track: ArithmeticTrack, val binsNum:
 
         cacheAndGet(model).forEachIndexed { i, s ->
             val h = (s / max * height).toInt()
-            g.color = Color.RED
+            g.color = Color.CYAN
             g.fillRect(i * step, height - h, step, h)
         }
     }
@@ -46,5 +47,18 @@ class ArithmeticTrackView(name: String, val track: ArithmeticTrack, val binsNum:
                                conf: Storage): List<Scale> {
         val max = Math.ceil(cacheAndGet(model).max()!!)
         return listOf(Scale(0.0, max))
+    }
+
+    override fun drawLegend(g: Graphics, width:Int, height:Int, drawInBG: Boolean) {
+        TrackUIUtil.drawBoxedLegend(g, width, height, drawInBG,
+                Color.CYAN to "coverage")
+    }
+
+
+    override fun drawAxis(g: Graphics, conf: Storage,
+                          width:Int, height:Int,
+                          drawInBG: Boolean) {
+        TrackUIUtil.drawVerticalAxis(g, "?", conf[SCALES].single(), drawInBG,
+                width, height)
     }
 }

@@ -17,8 +17,8 @@ import javax.swing.border.LineBorder
 class TrackViewComponent(trackView: TrackView,
                          browser: DesktopGenomeBrowser,
                          uiModel: Storage) : JComponent() {
-
-    private val titleLabel = object : MultilineLabel(trackView.title) {
+    private val titleLabel = object : MultilineLabel(trackView.title
+            + (if (trackView.alias.isEmpty()) "" else " [${trackView.alias}]")) {
         override fun getPreferredSize(): Dimension? {
             // I have no idea why the '-5' is required for proper title
             // wrapping. Without the '-' no wrapping is done.

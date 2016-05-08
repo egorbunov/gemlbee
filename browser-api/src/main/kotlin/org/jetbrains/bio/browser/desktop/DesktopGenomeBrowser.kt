@@ -64,7 +64,6 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
     private val newTrackViewListener = object : NewTrackViewListener {
         override fun addNewTrackView(trackView: TrackView) {
             trackViews.add(trackView)
-            // TODO: maybe need better interface for adding tracks
             mainPanel.addTrackView(trackView)
             modelListener.modelChanged()
         }

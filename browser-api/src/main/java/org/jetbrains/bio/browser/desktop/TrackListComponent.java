@@ -550,7 +550,14 @@ public class TrackListComponent extends JPanel {
      * Adds track view to the end of tracks list
      */
     public void addTrack(final TrackView trackView) {
-        addTrack(trackView, myTrackViews.size() - 1, true);
+        addTrack(trackView, myTrackViews.size(), true);
+    }
+
+    /**
+     * removes given track
+     */
+    public void removeTrack(final TrackView trackView) {
+        removeTrack(trackView, true);
     }
 
     private void fireTrackViewsListChanged() {

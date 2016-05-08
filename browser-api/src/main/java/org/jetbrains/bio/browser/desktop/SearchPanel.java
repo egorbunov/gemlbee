@@ -111,7 +111,14 @@ public class SearchPanel extends JPanel {
 
                     try {
                         LOG.info("Interpreting query [" + text + "]");
-                        myBrowser.getInterpreter().interpret(text);
+                        String message = myBrowser.getInterpreter().interpret(text);
+                        if (!message.isEmpty()) {
+                            JOptionPane.showMessageDialog(this,
+                                    message,
+                                    "Interpreter",
+                                    JOptionPane.INFORMATION_MESSAGE
+                            );
+                        }
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(this,
                                 ex.getMessage(),

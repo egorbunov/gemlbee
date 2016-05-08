@@ -18,7 +18,7 @@ abstract class TrackView(title: String) {
     /**
      * Track name used in queries
      */
-    open var alias: String = ""
+    var alias: String = ""
 
     open var title: String = title
         protected set

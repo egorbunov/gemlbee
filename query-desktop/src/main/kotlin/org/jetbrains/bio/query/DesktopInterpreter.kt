@@ -2,10 +2,10 @@ package org.jetbrains.bio.query
 
 import org.apache.log4j.Logger
 import org.jetbrains.bio.browser.tracks.BigBedTrackView
-import org.jetbrains.bio.browser.tracks.LocationAwareTrackView
+import org.jetbrains.bio.browser.tracks.LocationsTrackView
 import org.jetbrains.bio.browser.tracks.TrackView
 import org.jetbrains.bio.query.parse.*
-import org.jetbrains.bio.query.tracks.ArithmeticTrackView
+import org.jetbrains.bio.query.tracks.FixBinnedArithmeticTrackView
 import org.jetbrains.bio.query.tracks.PredicateTrackView
 import java.util.*
 
@@ -20,10 +20,10 @@ import java.util.*
  * Queries interpreter. It is `Desktop` specific because there are queries,
  * whose evaluation affects the view.
  */
-class DesktopInterpreter(aliasedTrackViews: HashMap<String, TrackView>) {
+class DesktopInterpreter(trackViews: List<TrackView>) {
     private val LOG = Logger.getLogger(DesktopInterpreter::class.java)
+
     private val newTrackListeners = ArrayList<NewTrackViewListener>()
-    private val trackViewsAliases = HashMap<TrackView, String>()
 
     // tracks, which were generated
     // view for track created only when show statement evaluated
@@ -32,60 +32,68 @@ class DesktopInterpreter(aliasedTrackViews: HashMap<String, TrackView>) {
 
     init {
         // Working only with BigBedTrackView for now
-        aliasedTrackViews.filter { (it.value is BigBedTrackView || it is LocationAwareTrackView<*>)
-                && !it.key.isEmpty() }.forEach { trackViewsAliases.put(it.value, it.key) }
-
-        trackViewsAliases.forEach { view, name ->
+        trackViews.filter { !it.alias.isEmpty() }.forEach { view ->
             when {
-                (view is BigBedTrackView) -> arithmeticTracks[name] = BigBedFileTrack(name, view.bbf)
-                // TODO: add LocationsTrackView support here
-//                (view is LocationsTrackView) -> predicateTracks[name] = PredicateTrackView()
+                (view is BigBedTrackView) ->  {
+                    arithmeticTracks[view.alias] = BigBedFileTrack(view.alias, view.bbf)
+                }
+                (view is LocationsTrackView) -> {
+                    predicateTracks[view.alias] = throw IllegalArgumentException("=(")
+                }
             }
         }
     }
 
-    fun interpret(query: String) {
+    /**
+     * Interprets query and returns message...
+     */
+    fun interpret(query: String): String {
         val parser = LangParser(query, arithmeticTracks, predicateTracks)
 
         val st = parser.parse()
         when {
             (st is AssignStatement) -> {
-                LOG.info("Assign statement was parsed: [ ${st.id} := ... ]")
+                LOG.info("Assign statement parsed. Creating new track with name [${st.id}]")
                 val track = st.track
                 when {
-                    (track is ArithmeticTrack) -> arithmeticTracks.put(st.id, track)
-                    (track is PredicateTrack) -> predicateTracks.put(st.id, track)
-                    // TODO: change exception
-                    else -> throw IllegalArgumentException("Interpreter exception")
+                    (track is ArithmeticTrack) -> {
+                        arithmeticTracks.put(st.id, track)
+                        return "New arithmetic (binned) track with name [ ${st.id} ] was created."
+                    }
+                    (track is PredicateTrack) -> {
+                        predicateTracks.put(st.id, track)
+                        return "New predicate (location aware) track with name [ ${st.id} ] was created."
+                    }
+                    else -> throw IllegalStateException("Interpreter exception")
                 }
             }
             (st is ShowTrackStatement) -> {
-                LOG.info("Show statement was parsed...")
+                LOG.info("Show statement parsed.")
                 val track = st.track
-                var id: String // TODO: don't like this...
+                var id: String
                 val newTrackView = when {
                     (track is NamedArithmeticTrack) -> {
                         id = track.id
-                        ArithmeticTrackView(track.id, track.ref)
+                        FixBinnedArithmeticTrackView(track.id, track.ref)
                     }
                     (track is NamedPredicateTrack) -> {
                         id = track.id
                         PredicateTrackView(track.id, track.ref)
                     }
-                    else -> throw IllegalArgumentException("Interpreter exception!") // TODO: err handling
+                    else -> {
+                        throw IllegalStateException("Interpreter exception!")
+                    }
                 }
-                trackViewsAliases.put(newTrackView, id)
+                newTrackView.alias = id
                 newTrackViewAdded(newTrackView)
             }
             else -> {
-                // TODO: Log...
+                LOG.info("Statement with no effect parsed.")
+                return "Statement has no effect";
             }
         }
 
-    }
-
-    fun getAliasForView(trackView: TrackView): String? {
-        return trackViewsAliases[trackView]
+        return ""
     }
 
     fun newTrackViewAdded(view: TrackView) {
