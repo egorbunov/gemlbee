@@ -33,7 +33,9 @@ import org.jetbrains.bio.methylome.CytosineContext
 import org.jetbrains.bio.methylome.MethylomeQuery
 import org.jetbrains.bio.query.DesktopInterpreter
 import org.jetbrains.bio.query.parse.NumericTrack
+import org.jetbrains.bio.query.parse.TruePredicateTrack
 import org.jetbrains.bio.query.tracks.FixBinnedArithmeticTrackView
+import org.jetbrains.bio.query.tracks.PredicateTrackView
 import org.jetbrains.bio.transcriptome.KallistoQuery
 import org.jetbrains.bio.transcriptome.fastqReads
 import org.jetbrains.bio.util.Configuration
