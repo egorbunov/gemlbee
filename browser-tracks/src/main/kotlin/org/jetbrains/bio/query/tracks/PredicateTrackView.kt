@@ -11,22 +11,20 @@ import java.util.*
  * @since 01.05.16
  */
 
-/**
- * TODO: implement me (PredicateTrackView) =)
- */
 class PredicateTrackView(name: String,
                          val track: PredicateTrack) : LocationAwareTrackView<Location>(name) {
 
     private val cache = HashMap<String, List<Location>>()
 
     private fun calc(model: SingleLocationBrowserModel): List<Location> {
-        val start = model.chromosomeRange.startOffset
-        val lst = track.eval(model.chromosomeRange, model.chromosomeRange.length())
-        return emptyList()
+        return cache.getOrPut(model.chromosome.name) {
+            track.eval(model.chromosomeRange, model.chromosomeRange.length()).map {
+                Location(it.startOffset, it.endOffset, model.chromosome)
+            }
+        }
     }
 
-
     override fun getItems(model: SingleLocationBrowserModel): Iterable<Location> {
-        throw UnsupportedOperationException()
+        return calc(model)
     }
 }

@@ -67,7 +67,7 @@ class ToStringVisitor: TreeVisitor<Unit> {
 
     override fun visit(node: IfStatementTrack) {
         sb.append("if ")
-        node.pred.accept(this)
+        node.cond.accept(this)
         sb.append(" then ")
         node.ifTrue.accept(this)
         sb.append(" else ")

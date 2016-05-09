@@ -1,6 +1,7 @@
 package org.jetbrains.bio.query.parse
 
 import org.jetbrains.bio.genome.ChromosomeRange
+import java.util.*
 
 /**
  * @author Egor Gorbunov
@@ -8,7 +9,7 @@ import org.jetbrains.bio.genome.ChromosomeRange
  */
 
 abstract class ArithmeticTrack : GeneratedTrack() {
-    abstract fun eval(range: ChromosomeRange, binsNum: Int): List<Double>
+    abstract fun eval(chRange: ChromosomeRange, binsNum: Int): List<Double>
 }
 
 class NumericTrack(val value: Double) : ArithmeticTrack() {
@@ -16,7 +17,7 @@ class NumericTrack(val value: Double) : ArithmeticTrack() {
         return if (other is NumericTrack && value == other.value) 0 else 1
     }
 
-    override fun eval(range: ChromosomeRange, binsNum: Int): List<Double> {
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): List<Double> {
         return (1..binsNum).map { value }
     }
 
@@ -40,8 +41,8 @@ class BinaryArithmeticTrack(val op: ArithmeticOp,
     }
 
 
-    override fun eval(range: ChromosomeRange, binsNum: Int): List<Double> {
-        return lhs.eval(range, binsNum).zip(rhs.eval(range, binsNum)).map {
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): List<Double> {
+        return lhs.eval(chRange, binsNum).zip(rhs.eval(chRange, binsNum)).map {
             when (op) {
                 ArithmeticOp.PLUS -> it.first + it.second
                 ArithmeticOp.MINUS -> it.first - it.second
@@ -57,16 +58,24 @@ class BinaryArithmeticTrack(val op: ArithmeticOp,
 }
 
 /**
- * if {pred} then {ifTrue} else {ifFalse} statement
+ * if {cond} then {ifTrue} else {ifFalse} statement
  */
-class IfStatementTrack(val pred: PredicateTrack,
+class IfStatementTrack(val cond: PredicateTrack,
                        val ifTrue: ArithmeticTrack,
                        val ifFalse: ArithmeticTrack) : ArithmeticTrack() {
-    override fun eval(range: ChromosomeRange, binsNum: Int): List<Double> {
-        throw UnsupportedOperationException()
-//        return pred.eval(range, binsNum).zip(ifTrue.eval(range, binsNum).zip(ifFalse.eval(range, binsNum))).map {
-//            if (it.first) it.second.first else it.second.second
-//        }
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): List<Double> {
+        val step = chRange.length() / binsNum
+        val rangeList = cond.eval(chRange, binsNum)
+        val ans = ArrayList(ifFalse.eval(chRange, binsNum))
+        val trueRes = ifTrue.eval(chRange, binsNum)
+        rangeList.map { Pair(((it.startOffset - chRange.startOffset) / step).toInt(),
+                ((it.startOffset - chRange.startOffset) / step).toInt()) }.forEach {
+
+            for (i in it.first..it.second) {
+                ans[i] = trueRes[i]
+            }
+        }
+        return ans;
     }
 
     override fun <T> accept(visitor: TreeVisitor<T>): T {
@@ -75,7 +84,7 @@ class IfStatementTrack(val pred: PredicateTrack,
 
     override fun compareTo(other: Statement): Int {
         return if (other is IfStatementTrack
-                && pred.compareTo(other.pred) == 0
+                && cond.compareTo(other.cond) == 0
                 && ifTrue.compareTo(other.ifTrue) == 0
                 && ifFalse.compareTo(other.ifFalse) == 0) 0 else 1
     }
@@ -87,8 +96,8 @@ class NamedArithmeticTrack(val id: String,
         return if (other !is NamedArithmeticTrack || id != other.id) 1 else ref.compareTo(other.ref)
     }
 
-    override fun eval(range: ChromosomeRange, binsNum: Int): List<Double> {
-        return ref.eval(range, binsNum)
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): List<Double> {
+        return ref.eval(chRange, binsNum)
     }
 
     override fun <T> accept(visitor: TreeVisitor<T>): T {

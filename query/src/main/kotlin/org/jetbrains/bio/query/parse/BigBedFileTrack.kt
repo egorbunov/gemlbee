@@ -14,10 +14,10 @@ class BigBedFileTrack(val id: String, val bbf: BigBedFile): ArithmeticTrack() {
     }
 
 
-    override fun eval(range: ChromosomeRange, binsNum: Int): List<Double> {
-        return bbf.summarize(range.chromosome.name,
-                range.startOffset,
-                range.endOffset,
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): List<Double> {
+        return bbf.summarize(chRange.chromosome.name,
+                chRange.startOffset,
+                chRange.endOffset,
                 binsNum).map { it.sum }
     }
 

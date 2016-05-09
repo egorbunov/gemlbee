@@ -14,6 +14,9 @@ import java.util.*
  */
 
 abstract class PredicateTrack: GeneratedTrack() {
+    /**
+     * Important: I suppose that it returns sorted list of ranges without overlapping!
+     */
     abstract fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList
 }
 
@@ -118,8 +121,8 @@ class RelationPredicateTrack(val op: RelationOp,
         val step = (chRange.length() / binsNum).toInt()
         val ranges = ArrayList<Range>()
 
-        var s = 0
-        var e = 0
+        var s = chRange.startOffset
+        var e = chRange.startOffset
         lhs.eval(chRange, binsNum).zip(rhs.eval(chRange, binsNum)).forEachIndexed { i, p ->
             val res = when (op) {
                 RelationOp.EQ  -> p.first == p.second
