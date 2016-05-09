@@ -6,6 +6,8 @@ import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.genome.containers.RangeList
 import org.jetbrains.bio.genome.containers.minus
 import org.jetbrains.bio.genome.containers.toRangeList
+import org.jetbrains.bio.query.containers.SortedRangeList
+import org.jetbrains.bio.query.containers.toSortedRangeList
 import java.util.*
 
 /**
@@ -17,7 +19,7 @@ abstract class PredicateTrack: GeneratedTrack() {
     /**
      * Important: I suppose that it returns sorted list of ranges without overlapping!
      */
-    abstract fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList
+    abstract fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList
 }
 
 class NotPredicateTrack(val rhs: PredicateTrack): PredicateTrack() {
@@ -25,8 +27,8 @@ class NotPredicateTrack(val rhs: PredicateTrack): PredicateTrack() {
         return if (other !is NotPredicateTrack) 1 else rhs.compareTo(other.rhs)
     }
 
-    override fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList {
-        return (chRange.toRange() - rhs.eval(chRange, binsNum)).toRangeList()
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList {
+        return (chRange.toRange() - rhs.eval(chRange, binsNum)).toSortedRangeList()
     }
 
     override fun <T> accept(visitor: TreeVisitor<T>): T {
@@ -42,7 +44,7 @@ class OrPredicateTrack(val lhs: PredicateTrack, val rhs: PredicateTrack): Predic
         }
     }
 
-    override fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList {
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList {
         return lhs.eval(chRange, binsNum) or rhs.eval(chRange, binsNum)
     }
 
@@ -59,7 +61,7 @@ class AndPredicateTrack(val lhs: PredicateTrack, val rhs: PredicateTrack): Predi
         }
     }
 
-    override fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList {
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList {
         return lhs.eval(chRange, binsNum) and rhs.eval(chRange, binsNum)
     }
 
@@ -73,8 +75,8 @@ class TruePredicateTrack(): PredicateTrack() {
         return if (other is TruePredicateTrack) 0 else 1
     }
 
-    override fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList {
-        return listOf(chRange.toRange()).toRangeList()
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList {
+        return listOf(chRange.toRange()).toSortedRangeList()
     }
 
     override fun <T> accept(visitor: TreeVisitor<T>): T {
@@ -87,8 +89,8 @@ class FalsePredicateTrack(): PredicateTrack() {
         return if (other is FalsePredicateTrack) 0 else 1
     }
 
-    override fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList {
-        return emptyList<Range>().toRangeList()
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList {
+        return emptyList<Range>().toSortedRangeList()
     }
 
     override fun <T> accept(visitor: TreeVisitor<T>): T {
@@ -117,7 +119,7 @@ class RelationPredicateTrack(val op: RelationOp,
         }
     }
 
-    override fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList {
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList {
         val step = (chRange.length() / binsNum).toInt()
         val ranges = ArrayList<Range>()
 
@@ -133,11 +135,12 @@ class RelationPredicateTrack(val op: RelationOp,
                 RelationOp.NEQ -> p.first != p.second
             }
 
-            if ((!res && s < e) || (i == binsNum - 1 && s < e)) ranges.add(Range(s, e))
+            if (!res && s < e) ranges.add(Range(s, e))
             e += step
+            if (i == binsNum && s < e) ranges.add(Range(s, e))
             if (!res) s = e
         }
-        return ranges.toRangeList()
+        return ranges.toSortedRangeList()
     }
 
     override fun <T> accept(visitor: TreeVisitor<T>): T {
@@ -151,7 +154,7 @@ class NamedPredicateTrack(val id: String,
         return if (other !is NamedPredicateTrack || id != other.id) 1 else ref.compareTo(other.ref)
     }
 
-    override fun eval(chRange: ChromosomeRange, binsNum: Int): RangeList {
+    override fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList {
         return ref.eval(chRange, binsNum)
     }
 
