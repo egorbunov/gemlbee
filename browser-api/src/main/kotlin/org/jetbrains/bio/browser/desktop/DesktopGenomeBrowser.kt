@@ -9,10 +9,10 @@ import org.jetbrains.bio.browser.model.BrowserModel
 import org.jetbrains.bio.browser.model.LocationReference
 import org.jetbrains.bio.browser.model.ModelListener
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
+import org.jetbrains.bio.browser.query.desktop.DesktopInterpreter
+import org.jetbrains.bio.browser.query.desktop.NewTrackViewListener
 import org.jetbrains.bio.browser.tracks.TrackView
 import org.jetbrains.bio.genome.query.GenomeQuery
-import org.jetbrains.bio.query.DesktopInterpreter
-import org.jetbrains.bio.query.NewTrackViewListener
 import org.jetbrains.bio.util.Logs
 import java.awt.Dimension
 import java.awt.Point

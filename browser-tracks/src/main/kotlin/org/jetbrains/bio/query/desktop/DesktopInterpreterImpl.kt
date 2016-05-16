@@ -1,6 +1,8 @@
-package org.jetbrains.bio.query
+package org.jetbrains.bio.query.desktop
 
 import org.apache.log4j.Logger
+import org.jetbrains.bio.browser.query.desktop.DesktopInterpreter
+import org.jetbrains.bio.browser.query.desktop.NewTrackViewListener
 import org.jetbrains.bio.browser.tracks.BigBedTrackView
 import org.jetbrains.bio.browser.tracks.LocationsTrackView
 import org.jetbrains.bio.browser.tracks.TrackView
@@ -20,8 +22,8 @@ import java.util.*
  * Queries interpreter. It is `Desktop` specific because there are queries,
  * whose evaluation affects the view.
  */
-class DesktopInterpreter(trackViews: List<TrackView>) {
-    private val LOG = Logger.getLogger(DesktopInterpreter::class.java)
+class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
+    private val LOG = Logger.getLogger(DesktopInterpreterImpl::class.java)
 
     private val newTrackListeners = ArrayList<NewTrackViewListener>()
 
@@ -47,7 +49,7 @@ class DesktopInterpreter(trackViews: List<TrackView>) {
     /**
      * Interprets query and returns message...
      */
-    fun interpret(query: String): String {
+    override fun interpret(query: String): String {
         val parser = LangParser(query, arithmeticTracks, predicateTracks)
 
         val st = parser.parse()
@@ -96,15 +98,15 @@ class DesktopInterpreter(trackViews: List<TrackView>) {
         return ""
     }
 
-    fun newTrackViewAdded(view: TrackView) {
+    private fun newTrackViewAdded(view: TrackView) {
         newTrackListeners.forEach { it.addNewTrackView(view) }
     }
 
-    fun addNewTrackListener(listener: NewTrackViewListener) {
+    override fun addNewTrackListener(listener: NewTrackViewListener) {
         newTrackListeners.add(listener)
     }
 
-    fun removeNewTrackListener(listener: NewTrackViewListener) {
+    override fun removeNewTrackListener(listener: NewTrackViewListener) {
         newTrackListeners.remove(listener)
     }
 }

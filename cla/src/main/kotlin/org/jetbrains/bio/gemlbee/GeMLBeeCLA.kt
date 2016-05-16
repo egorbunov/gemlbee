@@ -31,7 +31,7 @@ import org.jetbrains.bio.io.BedFormat
 import org.jetbrains.bio.io.LiftOverRemapper
 import org.jetbrains.bio.methylome.CytosineContext
 import org.jetbrains.bio.methylome.MethylomeQuery
-import org.jetbrains.bio.query.DesktopInterpreter
+import org.jetbrains.bio.query.desktop.DesktopInterpreterImpl
 import org.jetbrains.bio.query.parse.NumericTrack
 import org.jetbrains.bio.query.parse.TruePredicateTrack
 import org.jetbrains.bio.query.tracks.FixBinnedArithmeticTrackView
@@ -315,7 +315,7 @@ chr4    55538009    55547347    KLF4    -
         configureTracks(configs, master, tracks)
 
         LOG.info("Setting up query interpreter")
-        val interpreter = DesktopInterpreter(tracks)
+        val interpreter = DesktopInterpreterImpl(tracks)
 
         LOG.info("Starting browser..")
         if (serverMode) {

@@ -1,4 +1,4 @@
-package org.jetbrains.bio.query
+package org.jetbrains.bio.browser.query.desktop
 
 import org.jetbrains.bio.browser.tracks.TrackView
 

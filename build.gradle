@@ -70,6 +70,7 @@ project(':browser-api') {
 
         compile project(':data')
         compile project(':util')
+        compile project(':query')
     }
 }
 
