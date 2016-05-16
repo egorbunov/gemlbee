@@ -5,8 +5,8 @@ import org.jetbrains.bio.genome.ChromosomeRange
 import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.query.containers.SortedRangeList
 import org.jetbrains.bio.query.containers.toSortedRangeList
-import org.junit.Assert
 import org.junit.Test
+import kotlin.test.assertEquals
 
 /**
  * @author Egor Gorbunov
@@ -46,15 +46,15 @@ class EvalTest {
     @Test fun testTruePredicateEval() {
         val track = LangParser("true", emptyMap(), emptyMap()).parse() as TruePredicateTrack
         val ranges = track.eval(ChromosomeRange(10, 100, chromosome), 10)
-        Assert.assertEquals(1, ranges.size())
+        assertEquals(1, ranges.size())
         val rng = ranges.asIterable().first()
-        Assert.assertEquals(Range(10, 100), rng)
+        assertEquals(Range(10, 100), rng)
     }
 
     @Test fun testFalsePredicateEval() {
         val track = LangParser("false", emptyMap(), emptyMap()).parse() as FalsePredicateTrack
         val ranges = track.eval(ChromosomeRange(10, 100, chromosome), 10)
-        Assert.assertEquals(0, ranges.size())
+        assertEquals(0, ranges.size())
     }
 
     @Test fun testAndPredicate() {
@@ -66,7 +66,7 @@ class EvalTest {
         val ranges = andPredicate.eval(ChromosomeRange(0, 1000, chromosome), 0)
 
         arrayOf(Range(15, 20), Range(100, 150), Range(650, 800)).zip(ranges).forEach {
-            Assert.assertEquals(it.first, it.second)
+            assertEquals(it.first, it.second)
         }
     }
 
@@ -81,7 +81,7 @@ class EvalTest {
         val ranges = orPredicate.eval(ChromosomeRange(0, 1000, chromosome), 0)
 
         arrayOf(Range(10, 40), Range(50, 80), Range(90, 200), Range(500, 900)).zip(ranges).forEach {
-            Assert.assertEquals(it.first, it.second)
+            assertEquals(it.first, it.second)
         }
     }
 
@@ -90,7 +90,7 @@ class EvalTest {
         val notPredicate = NotPredicateTrack(predicate)
         val ranges = notPredicate.eval(ChromosomeRange(0, 1000, chromosome), 0)
         arrayOf(Range(0, 10), Range(20, 100), Range(200, 500), Range(800, 1000)).zip(ranges).forEach {
-            Assert.assertEquals(it.first, it.second)
+            assertEquals(it.first, it.second)
         }
     }
 
@@ -103,17 +103,17 @@ class EvalTest {
         var ranges = RelationPredicateTrack(RelationOp.EQ, track1, track2).eval(
                 ChromosomeRange(0, 100, chromosome), binsNum
         )
-        arrayOf(Range(0, 100)).zip(ranges).forEach { Assert.assertEquals(it.first, it.second) }
+        arrayOf(Range(0, 100)).zip(ranges).forEach { assertEquals(it.first, it.second) }
         // test NEQ
         ranges = RelationPredicateTrack(RelationOp.NEQ, track1, track2).eval(
                 ChromosomeRange(0, 100, chromosome), binsNum
         )
-        Assert.assertEquals(0, ranges.size())
+        assertEquals(0, ranges.size())
         // test LEQ
         ranges = RelationPredicateTrack(RelationOp.LEQ, track1, track2).eval(
                 ChromosomeRange(0, 100, chromosome), binsNum
         )
-        arrayOf(Range(0, 100)).zip(ranges).forEach { Assert.assertEquals(it.first, it.second) }
+        arrayOf(Range(0, 100)).zip(ranges).forEach { assertEquals(it.first, it.second) }
     }
 
     @Test fun testRelationPredicate2() {
@@ -130,14 +130,14 @@ class EvalTest {
                 ChromosomeRange(0, 160, chromosome), binsNum
         )
         arrayOf(Range(0, 60), Range(80, 140)).zip(ranges).forEach {
-            Assert.assertEquals(it.first, it.second)
+            assertEquals(it.first, it.second)
         }
         // test GE
         ranges = RelationPredicateTrack(RelationOp.GE, track1, track2).eval(
                 ChromosomeRange(0, 160, chromosome), binsNum
         )
         arrayOf(Range(0, 60), Range(100, 140)).zip(ranges).forEach {
-            Assert.assertEquals(it.first, it.second)
+            assertEquals(it.first, it.second)
         }
     }
 }

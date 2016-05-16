@@ -5,6 +5,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import java.util.*
+import kotlin.test.assertEquals
 
 /**
  * @author Egor Gorbunov
@@ -159,6 +160,6 @@ class LangParserTest(val query: String, val expectedStatement: Statement) {
 //        st.accept(toStr)
 //        println(toStr.getString())
 
-        Assert.assertEquals(st.compareTo(expectedStatement), 0)
+        assertEquals(st.compareTo(expectedStatement), 0)
     }
 }

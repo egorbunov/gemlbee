@@ -2,8 +2,8 @@ package org.jetbrains.bio.query.parse
 
 import org.jetbrains.bio.genome.Range
 import org.jetbrains.bio.query.containers.toSortedRangeList
-import org.junit.Assert
 import org.junit.Test
+import kotlin.test.assertEquals
 
 /**
  * @author Egor Gorbunov
@@ -24,9 +24,9 @@ class SortedRangeListTest() {
                         listOf(Range(10, 20), Range(30, 40), Range(50, 60)))
         ).forEach { p ->
             val list = p.first.toSortedRangeList()
-            Assert.assertEquals(p.second.size, list.size())
+            assertEquals(p.second.size, list.size())
             list.zip(p.second).forEach {
-                Assert.assertEquals(it.second, it.first)
+                assertEquals(it.second, it.first)
             }
         }
     }
@@ -67,9 +67,9 @@ class SortedRangeListTest() {
         ).forEach { testData ->
            val ans = testData[0] or testData[1]
            val expected = testData[2]
-           Assert.assertEquals(expected.size(), ans.size())
+           assertEquals(expected.size(), ans.size())
            ans.zip(expected).forEach {
-               Assert.assertEquals(it.second, it.first)
+               assertEquals(it.second, it.first)
            }
        }
     }
@@ -115,9 +115,9 @@ class SortedRangeListTest() {
         ).forEach { testData ->
             val ans = testData[0] and testData[1]
             val expected = testData[2]
-            Assert.assertEquals(expected.size(), ans.size())
+            assertEquals(expected.size(), ans.size())
             ans.zip(expected).forEach {
-                Assert.assertEquals(it.second, it.first)
+                assertEquals(it.second, it.first)
             }
         }
     }
