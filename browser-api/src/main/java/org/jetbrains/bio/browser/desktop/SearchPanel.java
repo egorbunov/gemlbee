@@ -6,26 +6,40 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.bio.browser.model.BrowserModel;
 import org.jetbrains.bio.browser.model.ModelListener;
+import org.jetbrains.bio.browser.query.desktop.TrackNameListener;
 import org.jetbrains.bio.genome.query.GenomeQuery;
+import org.jetbrains.bio.query.parse.LangParser;
+import org.jetbrains.bio.util.Lexeme;
+import org.jetbrains.bio.util.Match;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
  * @author Evgeny.Kurbatsky
  */
-public class SearchPanel extends JPanel {
+public class SearchPanel extends JPanel implements TrackNameListener {
     private final Logger LOG = Logger.getLogger(SearchPanel.class);
     private final DesktopGenomeBrowser myBrowser;
 
     private final JTextComponent myPositionComponent;
     private final ModelListener myModelListener;
+    private final JComboBox<String> queryText;
+
+    private Set<String> autoCompletionSet;
 
     public SearchPanel(final DesktopGenomeBrowser browser) {
         myBrowser = browser;
@@ -37,13 +51,19 @@ public class SearchPanel extends JPanel {
         add(genomeLabel);
 
         final Pair<JComboBox<String>, JTextComponent> comboBoxAndTextComponent = createPositionText();
-        final JComboBox<String> positionText = comboBoxAndTextComponent.getFirst();
+        queryText = comboBoxAndTextComponent.getFirst();
         myPositionComponent = comboBoxAndTextComponent.getSecond();
-        add(positionText);
-        positionText.setModel(new DefaultComboBoxModel<>(myBrowser.getLocationCompletion().toArray(new String[0])));
+        add(queryText);
+
+        autoCompletionSet = new HashSet<>();
+        autoCompletionSet.addAll(myBrowser.getLocationCompletion());
+        autoCompletionSet.addAll(myBrowser.getTracksCompletion());
+        queryText.setModel(new DefaultComboBoxModel<>(
+                autoCompletionSet.toArray(new String[0]))
+        );
 
         // TODO: magic size numbers...
-        positionText.setPreferredSize(new Dimension(600, 30));
+        queryText.setPreferredSize(new Dimension(600, 30));
 
         final JButton goButton = new JButton(new AbstractAction("Go") {
             @Override
@@ -58,6 +78,9 @@ public class SearchPanel extends JPanel {
 
         // Init text
         setLocationText(myBrowser.getModel().toString());
+
+        // Listening for new tracks names added
+        browser.addTrackNameListener(this);
     }
 
     public void setBrowserModel(final BrowserModel browserModel) {
@@ -67,7 +90,8 @@ public class SearchPanel extends JPanel {
     protected Pair<JComboBox<String>, JTextComponent> createPositionText() {
         final JComboBox<String> queryText = new JComboBox<>();
         queryText.setEditable(true);
-        queryText.setToolTipText("Gene name, chromosome name or position in 'chrX:20-5000' format or track-generating query");
+        queryText.setToolTipText("Gene name, chromosome name or position in 'chrX:20-5000' format or " +
+                "track-generating query");
 
         // Install autocompletion
         final AutoCompletion autoCompletion = new AutoCompletion(queryText);
@@ -108,6 +132,54 @@ public class SearchPanel extends JPanel {
             }
         });
 
+        textEditorComponent.getDocument().addDocumentListener(new DocumentListener() {
+            void highlight() {
+                final HashSet<Lexeme> kws = new HashSet<Lexeme>() {{
+                    add(LangParser.Keywords.INSTANCE.getASSIGN());
+                    add(LangParser.Keywords.INSTANCE.getAND());
+                    add(LangParser.Keywords.INSTANCE.getOR());
+                    add(LangParser.Keywords.INSTANCE.getNOT());
+                    add(LangParser.Keywords.INSTANCE.getIF());
+                    add(LangParser.Keywords.INSTANCE.getELSE());
+                    add(LangParser.Keywords.INSTANCE.getTHEN());
+                    add(LangParser.Keywords.INSTANCE.getSHOW());
+                    add(LangParser.Keywords.INSTANCE.getTRUE());
+                    add(LangParser.Keywords.INSTANCE.getFALSE());
+                }};
+
+                java.util.List<Match> matches = LangParser.Companion.getMatches(
+                        textEditorComponent.getText(),
+                        kws
+                );
+                // highlight all characters that appear in charsToHighlight
+                Highlighter h = textEditorComponent.getHighlighter();
+                h.removeAllHighlights();
+
+                for (Match match : matches) {
+                    try {
+                        h.addHighlight(match.getStart(), match.getEnd(),
+                                new DefaultHighlighter.DefaultHighlightPainter(Color.lightGray));
+                    } catch (BadLocationException e) {
+                        LOG.trace(e);
+                    }
+                }
+            }
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                highlight();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                highlight();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                highlight();
+            }
+        });
 
         // Hide arrow button
         final Component[] components = queryText.getComponents();
@@ -156,4 +228,19 @@ public class SearchPanel extends JPanel {
         myPositionComponent.setText(text);
     }
 
+    @Override
+    public void addTrackName(String name) {
+        autoCompletionSet.add(name);
+        queryText.setModel(new DefaultComboBoxModel<>(autoCompletionSet.toArray(new String[0])));
+//        final AutoCompletion autoCompletion = new AutoCompletion(queryText);
+//        autoCompletion.setStrict(false);
+    }
+
+    @Override
+    public void deleteTrackName(String name) {
+        autoCompletionSet.remove(name);
+        queryText.setModel(new DefaultComboBoxModel<>(autoCompletionSet.toArray(new String[0])));
+//        final AutoCompletion autoCompletion = new AutoCompletion(queryText);
+//        autoCompletion.setStrict(false);
+    }
 }

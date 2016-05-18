@@ -1,6 +1,7 @@
 package org.jetbrains.bio.query.parse
 
 import org.jetbrains.bio.util.*
+import java.util.*
 
 /**
  * Recursive parser (with backtracking) for queries over tracks
@@ -38,7 +39,6 @@ class LangParser(text: String,
         val IF = RegexLexeme("(if|IF)")
         val ELSE = RegexLexeme("(else|ELSE)")
         val THEN = RegexLexeme("(then|THEN)")
-        val ENDIF = RegexLexeme("(endif|ENDIF)")
         val SHOW = RegexLexeme("(show|SHOW)")
         val FALSE = RegexLexeme("(false|FALSE)")
         val TRUE = RegexLexeme("(true|TRUE)")
@@ -47,11 +47,27 @@ class LangParser(text: String,
     companion object {
         val keywordSet = with(Keywords) {
             setOf(NEQ, LEQ, GEQ, EQ, LE, GE, AND, OR, NOT, IF, ELSE, THEN, ASSIGN, SHOW, PLUS, MINUS, MUL, DIV,
-                    LPAREN, RPAREN, FALSE, TRUE, ENDIF)
+                    LPAREN, RPAREN, FALSE, TRUE)
         }
 
         val relationOpSet = with(Keywords) {
             setOf(LEQ, GEQ, EQ, LE, GE, NEQ)
+        }
+
+        /**
+         * Get matches for only given keywords
+         */
+        fun getMatches(str: String, keywords: Set<Lexeme>): List<Match> {
+            val kws = ArrayList<Match>()
+            val tokenizer = Tokenizer(str, keywordSet)
+            while (tokenizer.fetch() != null) {
+                val lexeme = tokenizer.fetch()
+                if (lexeme in keywords) {
+                    kws.add(tokenizer.match!!)
+                }
+                tokenizer.next()
+            }
+            return kws
         }
     }
 

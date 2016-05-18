@@ -42,7 +42,6 @@ interface GenomeBrowser {
             .distinct()
             .toList()
 
-
     /**
      * Executes a given command.
      *

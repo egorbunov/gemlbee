@@ -3,13 +3,17 @@ package org.jetbrains.bio.query.desktop
 import org.apache.log4j.Logger
 import org.jetbrains.bio.browser.query.desktop.DesktopInterpreter
 import org.jetbrains.bio.browser.query.desktop.NewTrackViewListener
+import org.jetbrains.bio.browser.query.desktop.TrackNameListener
 import org.jetbrains.bio.browser.tracks.BigBedTrackView
 import org.jetbrains.bio.browser.tracks.LocationsTrackView
 import org.jetbrains.bio.browser.tracks.TrackView
+import org.jetbrains.bio.ext.stream
 import org.jetbrains.bio.query.parse.*
 import org.jetbrains.bio.query.tracks.FixBinnedArithmeticTrackView
 import org.jetbrains.bio.query.tracks.PredicateTrackView
 import java.util.*
+import java.util.stream.Collectors
+import java.util.stream.Stream
 
 
 /**
@@ -26,6 +30,7 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
     private val LOG = Logger.getLogger(DesktopInterpreterImpl::class.java)
 
     private val newTrackListeners = ArrayList<NewTrackViewListener>()
+    private val newTrackNameListeners = ArrayList<TrackNameListener>()
 
     // tracks, which were generated
     // view for track created only when show statement evaluated
@@ -47,13 +52,18 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
         }
     }
 
+    override fun getAvailableNamedTracks(): List<String> {
+        return Stream.concat(predicateTracks.keys.stream(), arithmeticTracks.keys.stream())
+                .collect(Collectors.toList<String>())
+    }
+
     /**
      * Interprets query and returns message...
      */
     override fun interpret(query: String): String {
         val parser = LangParser(query, arithmeticTracks, predicateTracks)
-
         val st = parser.parse()
+        var message: String = ""
         when {
             (st is AssignStatement) -> {
                 LOG.info("Assign statement parsed. Creating new track with name [${st.id}]")
@@ -63,17 +73,17 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
                 }
                 when {
                     (track is ArithmeticTrack) -> {
-                        trackStatements.put(st.id, query);
                         arithmeticTracks.put(st.id, track)
-                        return "New arithmetic (binned) track with name [ ${st.id} ] was created."
+                        message = "New arithmetic (binned) track with name [ ${st.id} ] was created."
                     }
                     (track is PredicateTrack) -> {
-                        trackStatements.put(st.id, query);
                         predicateTracks.put(st.id, track)
-                        return "New predicate (location aware) track with name [ ${st.id} ] was created."
+                        message = "New predicate (location aware) track with name [ ${st.id} ] was created."
                     }
                     else -> throw IllegalStateException("Interpreter exception")
                 }
+                trackStatements.put(st.id, query);
+                newTrackNameListeners.forEach { it.addTrackName(st.id) }
             }
             (st is ShowTrackStatement) -> {
                 LOG.info("Show statement parsed.")
@@ -97,11 +107,11 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
             }
             else -> {
                 LOG.info("Statement with no effect parsed.")
-                return "Statement has no effect";
+                throw IllegalStateException("Statement with no effect parsed.")
             }
         }
 
-        return ""
+        return message
     }
 
     override fun isParseable(query: String): Boolean {
@@ -118,11 +128,19 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
         newTrackListeners.forEach { it.addNewTrackView(view) }
     }
 
-    override fun addNewTrackListener(listener: NewTrackViewListener) {
+    override fun addNewTrackViewListener(listener: NewTrackViewListener) {
         newTrackListeners.add(listener)
     }
 
-    override fun removeNewTrackListener(listener: NewTrackViewListener) {
+    override fun removeNewTrackViewListener(listener: NewTrackViewListener) {
         newTrackListeners.remove(listener)
+    }
+
+    override fun addNewTrackNameListener(listener: TrackNameListener) {
+        newTrackNameListeners.add(listener)
+    }
+
+    override fun removeNewTrackNameListener(listener: TrackNameListener) {
+        newTrackNameListeners.remove(listener)
     }
 }

@@ -7,6 +7,9 @@ package org.jetbrains.bio.browser.query.desktop
 interface DesktopInterpreter {
     fun isParseable(query: String): Boolean
     fun interpret(query: String): String
-    fun addNewTrackListener(listener: NewTrackViewListener)
-    fun removeNewTrackListener(listener: NewTrackViewListener)
+    fun addNewTrackNameListener(listener: TrackNameListener)
+    fun removeNewTrackNameListener(listener: TrackNameListener)
+    fun addNewTrackViewListener(listener: NewTrackViewListener)
+    fun removeNewTrackViewListener(listener: NewTrackViewListener)
+    fun getAvailableNamedTracks(): List<String>
 }

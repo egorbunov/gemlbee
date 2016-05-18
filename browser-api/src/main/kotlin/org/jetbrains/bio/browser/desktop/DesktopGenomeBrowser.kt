@@ -11,6 +11,7 @@ import org.jetbrains.bio.browser.model.ModelListener
 import org.jetbrains.bio.browser.model.SingleLocationBrowserModel
 import org.jetbrains.bio.browser.query.desktop.DesktopInterpreter
 import org.jetbrains.bio.browser.query.desktop.NewTrackViewListener
+import org.jetbrains.bio.browser.query.desktop.TrackNameListener
 import org.jetbrains.bio.browser.tracks.TrackView
 import org.jetbrains.bio.genome.query.GenomeQuery
 import org.jetbrains.bio.util.Logs
@@ -40,6 +41,16 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
 
     private lateinit var mainPanel: MainPanel
 
+    private var trackNameListeners: ArrayList<TrackNameListener> = ArrayList()
+
+    fun addTrackNameListener(listener: TrackNameListener) {
+        trackNameListeners.add(listener)
+    }
+
+    fun deleteTrackNameListener(listener: TrackNameListener) {
+        trackNameListeners.remove(listener)
+    }
+
     override var model: BrowserModel = browserModel
         set(value: BrowserModel) {
             if (value == model) {
@@ -57,6 +68,9 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
             })
         }
 
+    val tracksCompletion: List<String>
+        get() = interpreter.getAvailableNamedTracks()
+
     private val modelListener = object : ModelListener {
         override fun modelChanged() = trackViews.forEach(TrackView::fireRepaintRequired)
     }
@@ -70,12 +84,27 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
         }
     }
 
+    /**
+     * Just delegating...
+     */
+    private val newTrackNameListener = object : TrackNameListener {
+        override fun addTrackName(name: String) {
+            trackNameListeners.forEach { it.addTrackName(name) }
+        }
+
+        override fun deleteTrackName(name: String) {
+            trackNameListeners.forEach { it.addTrackName(name) }
+        }
+
+    }
+
     init {
         Logs.addConsoleAppender(Level.INFO)
         require(trackViews.isNotEmpty())
         browserModel.addListener(modelListener)
         // listening for new track views...
-        interpreter.addNewTrackListener(newTrackViewListener)
+        interpreter.addNewTrackViewListener(newTrackViewListener)
+        interpreter.addNewTrackNameListener(newTrackNameListener)
     }
 
     override fun execute(command: Command?) {
@@ -134,7 +163,7 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
                 }
             } catch (ne: Exception) {
                 JOptionPane.showMessageDialog(mainPanel.parent,
-                        "Can't parse position or statement: \n ${e.message} \n ${ne.message}",
+                        "Can't parse position or statement: \n 1) ${e.message} \n 2) ${ne.message}",
                         "Go To Location/Interpreter",
                         JOptionPane.ERROR_MESSAGE)
             }
@@ -183,7 +212,8 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
                             interpreter: DesktopInterpreter): DesktopGenomeBrowser {
             return DesktopGenomeBrowser(SingleLocationBrowserModel(genomeQuery),
                     trackViews,
-                    LociCompletion.DEFAULT_COMPLETION, interpreter)
+                    LociCompletion.DEFAULT_COMPLETION,
+                    interpreter)
         }
     }
 }
