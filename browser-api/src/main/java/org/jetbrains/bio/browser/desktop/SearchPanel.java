@@ -48,7 +48,7 @@ public class SearchPanel extends JPanel {
         final JButton goButton = new JButton(new AbstractAction("Go") {
             @Override
             public void actionPerformed(@NotNull final ActionEvent e) {
-                myBrowser.handlePositionChanged(myPositionComponent.getText());
+                myBrowser.handleAnyQuery(myPositionComponent.getText());
             }
         });
         add(goButton);
@@ -65,22 +65,22 @@ public class SearchPanel extends JPanel {
     }
 
     protected Pair<JComboBox<String>, JTextComponent> createPositionText() {
-        final JComboBox<String> positionText = new JComboBox<>();
-        positionText.setEditable(true);
-        positionText.setToolTipText("Gene name, chromosome name or position in 'chrX:20-5000' format");
+        final JComboBox<String> queryText = new JComboBox<>();
+        queryText.setEditable(true);
+        queryText.setToolTipText("Gene name, chromosome name or position in 'chrX:20-5000' format or track-generating query");
 
         // Install autocompletion
-        final AutoCompletion autoCompletion = new AutoCompletion(positionText);
+        final AutoCompletion autoCompletion = new AutoCompletion(queryText);
         autoCompletion.setStrict(false);
 
-        final JTextComponent textEditorComponent = (JTextComponent) positionText.getEditor().getEditorComponent();
+        final JTextComponent textEditorComponent = (JTextComponent) queryText.getEditor().getEditorComponent();
         // Handle position changed action
-        positionText.addActionListener(e -> {
+        queryText.addActionListener(e -> {
             // This action fires on autocompletion for first matcher result while typing,
             // so let's try to distinguish when user really wants to change position from
             // moment when he just typing/looking through completion list
 
-            final Object selectedItem = positionText.getSelectedItem();
+            final Object selectedItem = queryText.getSelectedItem();
             final String text = textEditorComponent.getText();
 
             // if completion list item equals to selected text
@@ -103,39 +103,14 @@ public class SearchPanel extends JPanel {
                     // clear selection
                     textEditorComponent.setSelectionStart(0);
                     textEditorComponent.setSelectionEnd(0);
-
-                    String title = "Go To Location";
-                    String error = myBrowser.handlePositionChanged(text);
-                    if (error == null)
-                        return;
-
-                    try {
-                        LOG.info("Interpreting query [" + text + "]");
-                        String message = myBrowser.getInterpreter().interpret(text);
-                        if (!message.isEmpty()) {
-                            JOptionPane.showMessageDialog(this,
-                                    message,
-                                    "Interpreter",
-                                    JOptionPane.INFORMATION_MESSAGE
-                            );
-                        }
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(this,
-                                ex.getMessage(),
-                                "Query Parser",
-                                JOptionPane.ERROR_MESSAGE);
-                        JOptionPane.showMessageDialog(this,
-                                error,
-                                title,
-                                JOptionPane.ERROR_MESSAGE);
-                    }
+                    myBrowser.handleOnlyPositionChanged(text);
                 }
             }
         });
 
 
         // Hide arrow button
-        final Component[] components = positionText.getComponents();
+        final Component[] components = queryText.getComponents();
         for (final Component component : components) {
             if (component instanceof JButton) {
                 component.setVisible(false);
@@ -174,7 +149,7 @@ public class SearchPanel extends JPanel {
             }
         });
 
-        return new Pair<>(positionText, textEditorComponent);
+        return new Pair<>(queryText, textEditorComponent);
     }
 
     public void setLocationText(final String text) {

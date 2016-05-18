@@ -13,23 +13,10 @@ import java.util.*
  */
 
 class PredicateTrackView(name: String,
-                         val track: PredicateTrack) : LocationAwareTrackView<Location>(name) {
-
-    private val cache = HashMap<String, List<Location>>()
-
-    private fun calc(model: SingleLocationBrowserModel): List<Location> {
-        // TODO: fix it
-        val wholeRange = ChromosomeRange(model.chromosome.range.startOffset,
-                model.chromosome.range.endOffset, model.chromosome)
-        return cache.getOrPut(model.chromosome.name) {
-            track.eval(wholeRange, wholeRange.length()).map {
-                Location(it.startOffset, it.endOffset, model.chromosome)
-            }
-        }
-    }
-
+                         val track: PredicateTrack,
+                         val binsNum: Int) : LocationAwareTrackView<Location>(name) {
     override fun getItems(model: SingleLocationBrowserModel): Iterable<Location> {
-        return track.eval(model.chromosomeRange, model.chromosomeRange.length()).map {
+        return track.eval(model.chromosomeRange, binsNum).map {
             Location(it.startOffset, it.endOffset, model.chromosome)
         }
     }

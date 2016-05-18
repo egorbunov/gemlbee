@@ -111,7 +111,7 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
                 Toolkit.getDefaultToolkit().screenSize
             else
                 Dimension(HeadlessGenomeBrowser.SCREENSHOT_WIDTH,
-                          HeadlessGenomeBrowser.SCREENSHOT_HEIGHT)
+                        HeadlessGenomeBrowser.SCREENSHOT_HEIGHT)
             minimumSize = Dimension(500, 300)
             isVisible = true
         }
@@ -120,36 +120,60 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
         BrowserSplash.close()
     }
 
+    fun handleAnyQuery(text: String) {
+        try {
+            handlePosition(text);
+        } catch (e: Exception) {
+            try {
+                val msg = handleStatementQuery(text)
+                if (msg.isNotEmpty()) {
+                    JOptionPane.showMessageDialog(mainPanel.parent,
+                            msg,
+                            "Interpreter",
+                            JOptionPane.INFORMATION_MESSAGE)
+                }
+            } catch (ne: Exception) {
+                JOptionPane.showMessageDialog(mainPanel.parent,
+                        "Can't parse position or statement: \n ${e.message} \n ${ne.message}",
+                        "Go To Location/Interpreter",
+                        JOptionPane.ERROR_MESSAGE)
+            }
+        }
+    }
+
+    fun handleOnlyPositionChanged(text: String) {
+        if (interpreter.isParseable(text)) {
+            return
+        }
+        try {
+            handlePosition(text);
+        } catch (e: Exception) {
+            JOptionPane.showMessageDialog(mainPanel.parent,
+                    "Can't parse position: \n ${e.message} \n",
+                    "Go To Location",
+                    JOptionPane.ERROR_MESSAGE)
+        }
+    }
+
+    private fun handleStatementQuery(text: String): String {
+        return interpreter.interpret(text)
+    }
+
     /**
      * Returns error message or null if ok
      */
-    fun handlePositionChanged(text: String): String? {
+    private fun handlePosition(text: String) {
         if (handleMultipleLocationsModel(text)) {
-            return null
+            return
         }
 
         val model = model as SingleLocationBrowserModel
         val locRef = LociCompletion.parse(text, model.genomeQuery)
         if (locRef != null) {
-            try {
-                execute(model.goTo(locRef))
-            } catch (e: Exception) {
-                return e.message
-//                JOptionPane.showMessageDialog(mainPanel.parent,
-//                                              e.message,
-//                                              "Go To Location",
-//                                              JOptionPane.ERROR_MESSAGE)
-            }
-
+            execute(model.goTo(locRef))
         } else {
-            return "Illegal location: " + text
-//            JOptionPane.showMessageDialog(mainPanel.parent,
-//                                          "Illegal location: " + text,
-//                                          "Go To Location",
-//                                          JOptionPane.ERROR_MESSAGE)
+            throw IllegalStateException("Illegal location: " + text)
         }
-
-        return null
     }
 
     companion object {
@@ -158,8 +182,8 @@ class DesktopGenomeBrowser(browserModel: BrowserModel,
         operator fun invoke(genomeQuery: GenomeQuery, trackViews: ArrayList<TrackView>,
                             interpreter: DesktopInterpreter): DesktopGenomeBrowser {
             return DesktopGenomeBrowser(SingleLocationBrowserModel(genomeQuery),
-                                        trackViews,
-                                        LociCompletion.DEFAULT_COMPLETION, interpreter)
+                    trackViews,
+                    LociCompletion.DEFAULT_COMPLETION, interpreter)
         }
     }
 }

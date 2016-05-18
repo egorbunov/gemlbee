@@ -68,7 +68,7 @@ class LangParser(text: String,
         /**
          * Don't be afraid of ?: chains, please
          */
-        var result: Statement? = parseAssign() ?: {
+        val result: Statement? = parseAssign() ?: {
             // assign parsing failed
             tokenizer.returnBack()
             parseShow() ?: {
@@ -162,7 +162,7 @@ class LangParser(text: String,
     private fun parseArithmeticFactor(): ArithmeticTrack? {
         val lexeme = tokenizer.fetch()
 
-        var res: ArithmeticTrack?
+        val res: ArithmeticTrack?
         when (lexeme) {
             Keywords.LPAREN -> {
                 tokenizer.next()
@@ -265,7 +265,7 @@ class LangParser(text: String,
 
     private fun parseNotFactor(): PredicateTrack? {
         val lexeme = tokenizer.fetch()
-        var res: PredicateTrack?
+        val res: PredicateTrack?
 
         if (lexeme == Keywords.NOT) {
             tokenizer.next()
@@ -290,7 +290,7 @@ class LangParser(text: String,
     private fun parsePredicateFactor(): PredicateTrack? {
         val lexeme = tokenizer.fetch()
 
-        var res: PredicateTrack?
+        val res: PredicateTrack?
         when (lexeme) {
             Keywords.LPAREN -> {
                 tokenizer.addBookmark()

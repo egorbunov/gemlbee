@@ -31,6 +31,7 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
     // view for track created only when show statement evaluated
     private val arithmeticTracks = HashMap<String, ArithmeticTrack>()
     private val predicateTracks = HashMap<String, PredicateTrack>()
+    private val trackStatements = HashMap<String, String>()
 
     init {
         // Working only with BigBedTrackView for now
@@ -57,12 +58,17 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
             (st is AssignStatement) -> {
                 LOG.info("Assign statement parsed. Creating new track with name [${st.id}]")
                 val track = st.track
+                if (st.id in arithmeticTracks || st.id in predicateTracks) {
+                    return "Track with id [${st.id}] already exists!";
+                }
                 when {
                     (track is ArithmeticTrack) -> {
+                        trackStatements.put(st.id, query);
                         arithmeticTracks.put(st.id, track)
                         return "New arithmetic (binned) track with name [ ${st.id} ] was created."
                     }
                     (track is PredicateTrack) -> {
+                        trackStatements.put(st.id, query);
                         predicateTracks.put(st.id, track)
                         return "New predicate (location aware) track with name [ ${st.id} ] was created."
                     }
@@ -72,15 +78,15 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
             (st is ShowTrackStatement) -> {
                 LOG.info("Show statement parsed.")
                 val track = st.track
-                var id: String
+                val id: String
                 val newTrackView = when {
                     (track is NamedArithmeticTrack) -> {
                         id = track.id
-                        FixBinnedArithmeticTrackView(track.id, track.ref)
+                        FixBinnedArithmeticTrackView(trackStatements[id]!!, track.ref, 50)
                     }
                     (track is NamedPredicateTrack) -> {
                         id = track.id
-                        PredicateTrackView(track.id, track.ref)
+                        PredicateTrackView(trackStatements[id]!!, track.ref, 50)
                     }
                     else -> {
                         throw IllegalStateException("Interpreter exception!")
@@ -96,6 +102,16 @@ class DesktopInterpreterImpl(trackViews: List<TrackView>): DesktopInterpreter {
         }
 
         return ""
+    }
+
+    override fun isParseable(query: String): Boolean {
+        val parser = LangParser(query, arithmeticTracks, predicateTracks)
+        try {
+            parser.parse()
+            return true
+        } catch (e: Exception) {
+            return false;
+        }
     }
 
     private fun newTrackViewAdded(view: TrackView) {
