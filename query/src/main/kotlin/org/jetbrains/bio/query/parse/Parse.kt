@@ -54,20 +54,31 @@ class LangParser(text: String,
             setOf(LEQ, GEQ, EQ, LE, GE, NEQ)
         }
 
+        val kwStrMap = with(Keywords) {
+            mapOf(
+                    GE to arrayOf(">"), LE to arrayOf("<"), GEQ to arrayOf(">="), LEQ to arrayOf("<="),
+                    EQ to arrayOf("=="), NEQ to arrayOf("!="), ASSIGN to arrayOf(":="), PLUS to arrayOf("+"),
+                    MINUS to arrayOf("-"), MUL to arrayOf("*"), DIV to arrayOf("/"), LPAREN to arrayOf("("),
+                    RPAREN to arrayOf(")"), AND to arrayOf("AND", "and"), OR to arrayOf("OR", "or"),
+                    NOT to arrayOf("NOT", "not"), IF to arrayOf("IF", "if"), ELSE to arrayOf("ELSE", "else"),
+                    THEN to arrayOf("THEN", "then"), SHOW to arrayOf("SHOW", "show"),
+                    FALSE to arrayOf("FALSE", "flase"), TRUE to arrayOf("TRUE", "true"))
+        }
+
+        
         /**
-         * Get matches for only given keywords
+         * Not used by parser, but by highlighter
          */
-        fun getMatches(str: String, keywords: Set<Lexeme>): List<Match> {
-            val kws = ArrayList<Match>()
-            val tokenizer = Tokenizer(str, keywordSet)
+        fun getMatches(str: String, offset: Int = 0): List<Match> {
+            val matches = ArrayList<Match>()
+            val tokenizer = Tokenizer(str.substring(offset), keywordSet)
             while (tokenizer.fetch() != null) {
-                val lexeme = tokenizer.fetch()
-                if (lexeme in keywords) {
-                    kws.add(tokenizer.match!!)
+                if (tokenizer.fetch()!!.token.isNotEmpty()) {
+                    matches.add(tokenizer.match!!)
                 }
                 tokenizer.next()
             }
-            return kws
+            return matches
         }
     }
 

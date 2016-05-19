@@ -1,45 +1,40 @@
 package org.jetbrains.bio.browser.desktop;
 
-import com.jidesoft.swing.AutoCompletion;
-import kotlin.Pair;
 import org.apache.log4j.Logger;
+import org.fife.ui.autocomplete.AutoCompletion;
+import org.fife.ui.autocomplete.BasicCompletion;
+import org.fife.ui.autocomplete.DefaultCompletionProvider;
+import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
+import org.fife.ui.rsyntaxtextarea.TokenTypes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.bio.browser.model.BrowserModel;
 import org.jetbrains.bio.browser.model.ModelListener;
+import org.jetbrains.bio.browser.query.desktop.LangTokenMaker;
 import org.jetbrains.bio.browser.query.desktop.TrackNameListener;
 import org.jetbrains.bio.genome.query.GenomeQuery;
-import org.jetbrains.bio.query.parse.LangParser;
-import org.jetbrains.bio.util.Lexeme;
-import org.jetbrains.bio.util.Match;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultHighlighter;
-import javax.swing.text.Highlighter;
-import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
-import java.util.HashSet;
-import java.util.Set;
-
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Evgeny.Kurbatsky
  */
 public class SearchPanel extends JPanel implements TrackNameListener {
-    private final Logger LOG = Logger.getLogger(SearchPanel.class);
     private final DesktopGenomeBrowser myBrowser;
 
-    private final JTextComponent myPositionComponent;
     private final ModelListener myModelListener;
-    private final JComboBox<String> queryText;
+    private final RSyntaxTextArea queryText;
 
-    private Set<String> autoCompletionSet;
+    private final DefaultCompletionProvider trackNamesCompletion = new DefaultCompletionProvider();
+    private final DefaultCompletionProvider allCompletion = new DefaultCompletionProvider();
 
     public SearchPanel(final DesktopGenomeBrowser browser) {
         myBrowser = browser;
@@ -50,25 +45,26 @@ public class SearchPanel extends JPanel implements TrackNameListener {
         genomeLabel.setText(genomeQuery.getGenome().getDescription() + ' ' + genomeQuery.getBuild());
         add(genomeLabel);
 
-        final Pair<JComboBox<String>, JTextComponent> comboBoxAndTextComponent = createPositionText();
-        queryText = comboBoxAndTextComponent.getFirst();
-        myPositionComponent = comboBoxAndTextComponent.getSecond();
+        queryText = createQueryText();
         add(queryText);
 
-        autoCompletionSet = new HashSet<>();
-        autoCompletionSet.addAll(myBrowser.getLocationCompletion());
-        autoCompletionSet.addAll(myBrowser.getTracksCompletion());
-        queryText.setModel(new DefaultComboBoxModel<>(
-                autoCompletionSet.toArray(new String[0]))
-        );
+        // Setting up auto completions
+        trackNamesCompletion.addCompletions(myBrowser.getTracksCompletion().stream()
+                .map(it -> new BasicCompletion(trackNamesCompletion, it))
+                .collect(Collectors.toList()));
+        allCompletion.addCompletions(
+                Stream.concat(myBrowser.getLocationCompletion().stream(), myBrowser.getTracksCompletion().stream())
+                        .map(it -> new BasicCompletion(allCompletion, it))
+                        .collect(Collectors.toList()));
 
-        // TODO: magic size numbers...
-        queryText.setPreferredSize(new Dimension(600, 30));
+        // Install auto completion
+        AutoCompletion ac = new AutoCompletion(allCompletion);
+        ac.install(queryText);
 
         final JButton goButton = new JButton(new AbstractAction("Go") {
             @Override
             public void actionPerformed(@NotNull final ActionEvent e) {
-                myBrowser.handleAnyQuery(myPositionComponent.getText());
+                myBrowser.handleAnyQuery(queryText.getText());
             }
         });
         add(goButton);
@@ -87,97 +83,50 @@ public class SearchPanel extends JPanel implements TrackNameListener {
         browserModel.addListener(myModelListener);
     }
 
-    protected Pair<JComboBox<String>, JTextComponent> createPositionText() {
-        final JComboBox<String> queryText = new JComboBox<>();
+    protected RSyntaxTextArea createQueryText() {
+        final RSyntaxTextArea queryText = new RSyntaxTextArea(1, 60);
         queryText.setEditable(true);
         queryText.setToolTipText("Gene name, chromosome name or position in 'chrX:20-5000' format or " +
                 "track-generating query");
+        queryText.setBackground(Color.WHITE);
+        queryText.setHighlightCurrentLine(false);
 
-        // Install autocompletion
-        final AutoCompletion autoCompletion = new AutoCompletion(queryText);
-        autoCompletion.setStrict(false);
+        // Setting up syntax highlighting
+        AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
+        atmf.putMapping("text/GemlbeeQueryLanguage", LangTokenMaker.class.getName());
+        queryText.setSyntaxEditingStyle("text/GemlbeeQueryLanguage");
+        queryText.getSyntaxScheme().getStyle(TokenTypes.RESERVED_WORD).foreground = Color.BLUE;
+        queryText.getSyntaxScheme().getStyle(TokenTypes.LITERAL_BOOLEAN).foreground = Color.ORANGE;
 
-        final JTextComponent textEditorComponent = (JTextComponent) queryText.getEditor().getEditorComponent();
-        // Handle position changed action
-        queryText.addActionListener(e -> {
-            // This action fires on autocompletion for first matcher result while typing,
-            // so let's try to distinguish when user really wants to change position from
-            // moment when he just typing/looking through completion list
 
-            final Object selectedItem = queryText.getSelectedItem();
-            final String text = textEditorComponent.getText();
-
-            // if completion list item equals to selected text
-            // * a. User has chosen it in completion popup
-            // * b. User typed something which matches to completion list item
-            //     ** Single match => ok, e.g "sox2"
-            //     ** Multi match and user probably want smth longer, e.g "sox10" instead of "sox1"
-            // * c. It's on location changed call back result, it sets current range after "go to" action
-            //
-            // "comboBoxEdited" event name allow as to distinguish autocompletion/callback from
-            // the case when user pressed ENTER
-            if (text != null && text.equals(selectedItem)) {
-                final boolean changePosition = "comboBoxEdited".equals(e.getActionCommand());
-                if (changePosition) {
-                    if (text.equals(myBrowser.getModel().toString())) {
-                        // relax guys, it's a fake call back, no action is required
-                        return;
-                    }
-
-                    // clear selection
-                    textEditorComponent.setSelectionStart(0);
-                    textEditorComponent.setSelectionEnd(0);
-                    myBrowser.handleOnlyPositionChanged(text);
-                }
-            }
-        });
-
-        textEditorComponent.getDocument().addDocumentListener(new DocumentListener() {
-            void highlight() {
-                final HashSet<Lexeme> kws = new HashSet<Lexeme>() {{
-                    add(LangParser.Keywords.INSTANCE.getASSIGN());
-                    add(LangParser.Keywords.INSTANCE.getAND());
-                    add(LangParser.Keywords.INSTANCE.getOR());
-                    add(LangParser.Keywords.INSTANCE.getNOT());
-                    add(LangParser.Keywords.INSTANCE.getIF());
-                    add(LangParser.Keywords.INSTANCE.getELSE());
-                    add(LangParser.Keywords.INSTANCE.getTHEN());
-                    add(LangParser.Keywords.INSTANCE.getSHOW());
-                    add(LangParser.Keywords.INSTANCE.getTRUE());
-                    add(LangParser.Keywords.INSTANCE.getFALSE());
-                }};
-
-                java.util.List<Match> matches = LangParser.Companion.getMatches(
-                        textEditorComponent.getText(),
-                        kws
-                );
-                // highlight all characters that appear in charsToHighlight
-                Highlighter h = textEditorComponent.getHighlighter();
-                h.removeAllHighlights();
-
-                for (Match match : matches) {
-                    try {
-                        h.addHighlight(match.getStart(), match.getEnd(),
-                                new DefaultHighlighter.DefaultHighlightPainter(Color.lightGray));
-                    } catch (BadLocationException e) {
-                        LOG.trace(e);
-                    }
+        queryText.getDocument().addDocumentListener(new DocumentListener() {
+            /**
+             * Changing auto completion. Assumption: genome positions are all encoded with words
+             * without any space character! (Caution: that may be wrong)
+             * So auto completion for genome position would be shown if only
+             * there is no space chars in current text
+             */
+            private void changeAutoCompletionStrategy() {
+                if (queryText.getText().trim().split("\\s").length > 1) {
+                    new AutoCompletion(trackNamesCompletion).install(queryText);
+                } else {
+                    new AutoCompletion(allCompletion).install(queryText);
                 }
             }
 
             @Override
             public void insertUpdate(DocumentEvent e) {
-                highlight();
+                changeAutoCompletionStrategy();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                highlight();
+                changeAutoCompletionStrategy();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                highlight();
+                changeAutoCompletionStrategy();
             }
         });
 
@@ -190,57 +139,40 @@ public class SearchPanel extends JPanel implements TrackNameListener {
             }
         }
 
-        // Select text on focus gained
-        // Linux-specific fix, on MacOS all works without it
-        textEditorComponent.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(final FocusEvent e) {
-                textEditorComponent.setSelectionStart(0);
-                textEditorComponent.setSelectionEnd(textEditorComponent.getText().length());
-            }
-
-            @Override
-            public void focusLost(final FocusEvent e) {
-                textEditorComponent.setSelectionStart(0);
-                textEditorComponent.setSelectionEnd(0);
-            }
-        });
-
-        // Additional actions
-        final InputMap inputMap = textEditorComponent.getInputMap();
-        // Auto-completion by Control+Space
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, ActionEvent.CTRL_MASK),
-                inputMap.get(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0)));
-
         // ESC handling
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "GBrowserReturnFocusToTracksList");
-        textEditorComponent.getActionMap().put("GBrowserReturnFocusToTracksList", new AbstractAction() {
+        queryText.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "GBrowserReturnFocusToTracksList");
+        queryText.getActionMap().put("GBrowserReturnFocusToTracksList", new AbstractAction() {
             @Override
             public void actionPerformed(@NotNull final ActionEvent e) {
                 myBrowser.getController().getTrackListComponent().requestFocus();
             }
         });
 
-        return new Pair<>(queryText, textEditorComponent);
+        // ENTER handling
+        queryText.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "ProcessQueryByEnterPress");
+        queryText.getActionMap().put("ProcessQueryByEnterPress", new AbstractAction() {
+            @Override
+            public void actionPerformed(@NotNull final ActionEvent e) {
+                myBrowser.handleAnyQuery(queryText.getText());
+            }
+        });
+
+        return queryText;
     }
 
     public void setLocationText(final String text) {
-        myPositionComponent.setText(text);
+        queryText.setText(text);
     }
 
     @Override
-    public void addTrackName(String name) {
-        autoCompletionSet.add(name);
-        queryText.setModel(new DefaultComboBoxModel<>(autoCompletionSet.toArray(new String[0])));
-//        final AutoCompletion autoCompletion = new AutoCompletion(queryText);
-//        autoCompletion.setStrict(false);
+    public void addTrackName(@NotNull String name) {
+        allCompletion.addCompletion(new BasicCompletion(allCompletion, name));
+        trackNamesCompletion.addCompletion(new BasicCompletion(trackNamesCompletion, name));
     }
 
     @Override
-    public void deleteTrackName(String name) {
-        autoCompletionSet.remove(name);
-        queryText.setModel(new DefaultComboBoxModel<>(autoCompletionSet.toArray(new String[0])));
-//        final AutoCompletion autoCompletion = new AutoCompletion(queryText);
-//        autoCompletion.setStrict(false);
+    public void deleteTrackName(@NotNull String name) {
+        allCompletion.removeCompletion(new BasicCompletion(allCompletion, name));
+        trackNamesCompletion.removeCompletion(new BasicCompletion(trackNamesCompletion, name));
     }
 }
