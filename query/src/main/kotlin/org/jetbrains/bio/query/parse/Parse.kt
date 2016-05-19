@@ -10,9 +10,6 @@ import java.util.*
  * @since 01.05.16
  */
 
-class ParseException(msg: String, errorOffset: Int, text: String): Exception(msg) {
-}
-
 class LangParser(text: String,
                  val arithmeticTracks: Map<String, ArithmeticTrack>, // already known arithmetic (bb) tracks
                  val predicateTracks: Map<String, PredicateTrack>) { // already known predicate (location aware) tracks
@@ -107,18 +104,14 @@ class LangParser(text: String,
                     parsePredicate() ?: {
                         // predicate parsing failed
                         tokenizer.popBookmark()
-                        throw ParseException(
-                                "Cannot parse track expression, error on suffix: " +
-                                        "${tokenizer.text.substring(tokenizer.tokenOffset)}",
-                                tokenizer.tokenOffset,
-                                tokenizer.text)
+
+                        throw IllegalStateException("Cannot parse track expression, error on suffix: " +
+                                "${tokenizer.text.substring(tokenizer.tokenOffset)}")
                     }()
                 }()
             }()
         }()
-        if (!tokenizer.atEnd()) {
-            throw ParseException("Not whole sentence parsed =(", tokenizer.tokenOffset, tokenizer.text)
-        }
+        check(tokenizer.atEnd()) { "Not whole sentence parsed!" }
 
         tokenizer.popBookmark()
         return result

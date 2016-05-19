@@ -18,6 +18,11 @@ class EvalTest {
         val chromosome = Chromosome.invoke("to1", "chr1")
     }
 
+    /**
+     * Test is aimed at checking if element vise evaluations done correctly, so
+     * we do not need [accept] and [compareTo] methods here, and only thing we need
+     * form tracks is payload data.
+     */
     class TestPredicateTrack(val supplier: (ChromosomeRange, Int) -> List<Range>): PredicateTrack() {
         override fun eval(chRange: ChromosomeRange, binsNum: Int): SortedRangeList {
             return supplier(chRange, binsNum).toSortedRangeList()

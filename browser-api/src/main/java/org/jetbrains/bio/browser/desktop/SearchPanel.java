@@ -84,7 +84,7 @@ public class SearchPanel extends JPanel implements TrackNameListener {
     }
 
     protected RSyntaxTextArea createQueryText() {
-        final RSyntaxTextArea queryText = new RSyntaxTextArea(1, 60);
+        final RSyntaxTextArea queryText = new RSyntaxTextArea(1, 70); // TODO: magic numbers!
         queryText.setEditable(true);
         queryText.setToolTipText("Gene name, chromosome name or position in 'chrX:20-5000' format or " +
                 "track-generating query");
