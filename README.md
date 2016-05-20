@@ -39,8 +39,8 @@ This fork additions
 Available operations with tracks
 --------------------------------
 
-First I need to say, that only BigBedTrack's supported for now. 
-Second, numbers are also treated as binned tracks: `1` -> `1 | 1 | 1 | ... | 1 |` (every bin filled with number). And so arithmetic operations are all made over vectors, element vise.
+Only BigBedTrack's supported for now. 
+Numbers are also treated as binned tracks: `1` -> `1 | 1 | 1 | ... | 1 |` (every bin filled with number). And so arithmetic operations are all made over vectors, element vise.
 
 Next operations result to binned tracks:
 
@@ -65,6 +65,19 @@ After evaluating that command browser will store new track (and add it to auto c
 
 Both generated predicate tracks and binned tracks can be visualized (and so named too), but predicate tracks are location aware.
 
+Autocompletion
+--------------
+
+Press `Ctrl + Space` for autocompletion. If current text has no spaces when autocompletion includes predefined *gene locations* and other stuff. 
+
+![auto completion loci](raw/autocompl.png)
+
+
+After you put more words to query autocompletion will include only track ids, which are available.
+
+![auto completion track ids](raw/autocompl2.png)
+
+
 YAML Config example
 -------------------
 
@@ -87,3 +100,5 @@ TODO:
 * ~~Fix query handling in `SearchPanel` class~~
 * ~~Add autocompletion for queries~~
 * Make new track views addition more stable (sometimes need to zoom in / zoom out to get track visible)
+* Location aware track views are shifted relatively to big bed tracks
+* Fix big bad track List has more than one element exception
