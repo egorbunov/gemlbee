@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 /**
  * @author Evgeny.Kurbatsky
+ * @author Egor.Gorbunov
  */
 public class SearchPanel extends JPanel implements TrackNameListener {
     private final DesktopGenomeBrowser myBrowser;
@@ -84,7 +85,7 @@ public class SearchPanel extends JPanel implements TrackNameListener {
     }
 
     protected RSyntaxTextArea createQueryText() {
-        final RSyntaxTextArea queryText = new RSyntaxTextArea(1, 70); // TODO: magic numbers!
+        final RSyntaxTextArea queryText = new RSyntaxTextArea(1, 40); // TODO: magic numbers!
         queryText.setEditable(true);
         queryText.setToolTipText("Gene name, chromosome name or position in 'chrX:20-5000' format or " +
                 "track-generating query");
@@ -97,6 +98,10 @@ public class SearchPanel extends JPanel implements TrackNameListener {
         queryText.setSyntaxEditingStyle("text/GemlbeeQueryLanguage");
         queryText.getSyntaxScheme().getStyle(TokenTypes.RESERVED_WORD).foreground = Color.BLUE;
         queryText.getSyntaxScheme().getStyle(TokenTypes.LITERAL_BOOLEAN).foreground = Color.ORANGE;
+        queryText.setFont(new Font(queryText.getFont().getName(),
+                queryText.getFont().getStyle(),
+                queryText.getFont().getSize() + 2));
+        queryText.setMargin(new Insets(5, 5, 5, 5));
 
 
         queryText.getDocument().addDocumentListener(new DocumentListener() {

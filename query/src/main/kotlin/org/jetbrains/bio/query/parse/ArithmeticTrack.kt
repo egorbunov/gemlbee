@@ -69,9 +69,9 @@ class IfStatementTrack(val cond: PredicateTrack,
         val ans = ArrayList(ifFalse.eval(chRange, binsNum))
         val trueRes = ifTrue.eval(chRange, binsNum)
         rangeList.map { Pair(((it.startOffset - chRange.startOffset) / step).toInt(),
-                ((it.startOffset - chRange.startOffset) / step).toInt()) }.forEach {
+                ((it.endOffset - chRange.startOffset) / step).toInt()) }.forEach {
 
-            for (i in it.first..it.second) {
+            for (i in it.first..it.second - 1) {
                 ans[i] = trueRes[i]
             }
         }
